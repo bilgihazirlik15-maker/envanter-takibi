@@ -1,0 +1,302 @@
+<script>
+const state = { items: [], movements: [], nextNumbers: {} };
+
+const typeSettings = {
+  "Flash Disk": { prefix: "FD" },
+  "Ses Kayıt Cihazı": { prefix: "SR" },
+  Kamera: { prefix: "KM" },
+};
+
+const els = {
+  metrics: document.getElementById("metrics"),
+  navItems: document.querySelectorAll(".nav-item"),
+  panels: document.querySelectorAll(".panel"),
+  barcodeInput: document.getElementById("barcodeInput"),
+  personInput: document.getElementById("personInput"),
+  noteInput: document.getElementById("noteInput"),
+  scanForm: document.getElementById("scanForm"),
+  clearButton: document.getElementById("clearButton"),
+  itemPreview: document.getElementById("itemPreview"),
+  message: document.getElementById("message"),
+  scanMode: document.getElementById("scanMode"),
+  inventoryRows: document.getElementById("inventoryRows"),
+  logRows: document.getElementById("logRows"),
+  inventorySearch: document.getElementById("inventorySearch"),
+  addItemForm: document.getElementById("addItemForm"),
+  addBarcode: document.getElementById("addBarcode"),
+  addType: document.getElementById("addType"),
+  addName: document.getElementById("addName"),
+  removeItemForm: document.getElementById("removeItemForm"),
+  removeBarcode: document.getElementById("removeBarcode"),
+  removeReason: document.getElementById("removeReason"),
+  manageMessage: document.getElementById("manageMessage"),
+  labelFilter: document.getElementById("labelFilter"),
+  labelMode: document.getElementById("labelMode"),
+  labelSheet: document.getElementById("labelSheet"),
+  printLabels: document.getElementById("printLabels"),
+};
+
+bindEvents();
+loadState();
+
+function loadState() {
+  setMessage("", "Kayıtlar yükleniyor...");
+  google.script.run
+    .withSuccessHandler((data) => {
+      Object.assign(state, data);
+      setMessage("", "");
+      render();
+      els.barcodeInput.focus();
+    })
+    .withFailureHandler(showError)
+    .getState();
+}
+
+function bindEvents() {
+  els.navItems.forEach((button) => {
+    button.addEventListener("click", () => switchView(button.dataset.view));
+  });
+  els.scanForm.addEventListener("submit", handleScan);
+  els.clearButton.addEventListener("click", clearScan);
+  els.barcodeInput.addEventListener("input", updatePreview);
+  els.inventorySearch.addEventListener("input", renderInventory);
+  els.addItemForm.addEventListener("submit", handleAddItem);
+  els.removeItemForm.addEventListener("submit", handleRemoveItem);
+  els.addType.addEventListener("change", updateNextBarcode);
+  els.labelFilter.addEventListener("change", renderLabels);
+  els.labelMode.addEventListener("change", handleLabelModeChange);
+  els.printLabels.addEventListener("click", () => window.print());
+}
+
+function switchView(view) {
+  els.navItems.forEach((button) => button.classList.toggle("active", button.dataset.view === view));
+  els.panels.forEach((panel) => panel.classList.toggle("active", panel.dataset.panel === view));
+  if (view === "scan") setTimeout(() => els.barcodeInput.focus(), 0);
+}
+
+function handleScan(event) {
+  event.preventDefault();
+  const barcode = normalize(els.barcodeInput.value);
+  if (!barcode) return;
+  setMessage("", "Kaydediliyor...");
+  google.script.run
+    .withSuccessHandler((data) => {
+      Object.assign(state, data);
+      setMessage("success", "İşlem Google Sheet'e kaydedildi.");
+      els.barcodeInput.value = "";
+      els.noteInput.value = "";
+      render();
+      els.barcodeInput.focus();
+    })
+    .withFailureHandler(showError)
+    .scanItem({ barcode, person: els.personInput.value, note: els.noteInput.value });
+}
+
+function handleAddItem(event) {
+  event.preventDefault();
+  setManageMessage("", "Ürün ekleniyor...");
+  google.script.run
+    .withSuccessHandler((data) => {
+      Object.assign(state, data);
+      els.addName.value = "";
+      setManageMessage("success", "Ürün envantere eklendi.");
+      render();
+    })
+    .withFailureHandler(showManageError)
+    .addItem({ type: els.addType.value, name: els.addName.value });
+}
+
+function handleRemoveItem(event) {
+  event.preventDefault();
+  setManageMessage("", "Ürün çıkarılıyor...");
+  google.script.run
+    .withSuccessHandler((data) => {
+      Object.assign(state, data);
+      els.removeReason.value = "";
+      setManageMessage("success", "Ürün gerekçesiyle envanterden çıkarıldı.");
+      render();
+    })
+    .withFailureHandler(showManageError)
+    .removeItem({ barcode: els.removeBarcode.value, reason: els.removeReason.value });
+}
+
+function clearScan() {
+  els.barcodeInput.value = "";
+  els.personInput.value = "";
+  els.noteInput.value = "";
+  setMessage("", "");
+  updatePreview();
+  els.barcodeInput.focus();
+}
+
+function render() {
+  renderMetrics();
+  renderInventory();
+  renderLogs();
+  renderRemoveOptions();
+  renderLabels();
+  updateNextBarcode();
+  updatePreview();
+}
+
+function renderMetrics() {
+  const total = state.items.length;
+  const inStock = state.items.filter((item) => item.status === "IN").length;
+  const out = total - inStock;
+  const categories = new Set(state.items.map((item) => item.type)).size;
+  els.metrics.innerHTML = [
+    ["Toplam ürün", total],
+    ["Stokta", inStock],
+    ["Dışarıda", out],
+    ["Ürün türü", categories],
+  ].map(([label, value]) => `<article class="metric"><span>${label}</span><strong>${value}</strong></article>`).join("");
+}
+
+function renderInventory() {
+  const query = normalize(els.inventorySearch.value || "");
+  const rows = state.items
+    .filter((item) => !query || normalize(`${item.barcode} ${item.type} ${item.name} ${item.holder}`).includes(query))
+    .map((item) => `
+      <tr>
+        <td><strong>${escapeHtml(item.barcode)}</strong></td>
+        <td>${escapeHtml(item.type)}</td>
+        <td>${escapeHtml(item.name)}</td>
+        <td>${statusBadge(item.status)}</td>
+        <td>${escapeHtml(item.holder || "Hazır")}</td>
+      </tr>`);
+  els.inventoryRows.innerHTML = rows.join("") || `<tr><td colspan="5">Kayıt bulunamadı.</td></tr>`;
+}
+
+function renderLogs() {
+  els.logRows.innerHTML =
+    state.movements
+      .slice(0, 80)
+      .map((log) => `
+        <tr>
+          <td>${formatDate(log.time)}</td>
+          <td><strong>${escapeHtml(log.barcode)}</strong></td>
+          <td>${escapeHtml(log.itemName)}</td>
+          <td>${statusBadge(log.action)}</td>
+          <td>${escapeHtml(log.person)}</td>
+          <td>${escapeHtml(log.note || "")}</td>
+        </tr>`)
+      .join("") || `<tr><td colspan="6">Henüz hareket yok.</td></tr>`;
+}
+
+function renderRemoveOptions() {
+  els.removeBarcode.innerHTML = state.items
+    .map((item) => `<option value="${escapeHtml(item.barcode)}">${escapeHtml(item.barcode)} - ${escapeHtml(item.name)}</option>`)
+    .join("");
+}
+
+function renderLabels() {
+  const isMini = els.labelMode.value === "mini";
+  if (isMini && els.labelFilter.value !== "Flash Disk") els.labelFilter.value = "Flash Disk";
+  const filter = els.labelFilter.value;
+  const items = state.items.filter((item) => filter === "all" || item.type === filter);
+  els.labelSheet.classList.toggle("mini", isMini);
+  els.labelSheet.innerHTML = items.map((item) => `
+    <article class="barcode-label">
+      <div>
+        <strong>${escapeHtml(item.barcode)}</strong>
+        <span>${isMini ? "BİLGİ HZP" : escapeHtml(item.type)}</span>
+      </div>
+      ${code128Svg(item.barcode, isMini ? 30 : 44)}
+      <p>${escapeHtml(isMini ? item.barcode : item.name)}</p>
+    </article>`).join("");
+}
+
+function handleLabelModeChange() {
+  if (els.labelMode.value === "mini") els.labelFilter.value = "Flash Disk";
+  renderLabels();
+}
+
+function updateNextBarcode() {
+  const setting = typeSettings[els.addType.value];
+  els.addBarcode.value = setting ? setting.prefix + String(state.nextNumbers[setting.prefix] || "").padStart(3, "0") : "";
+}
+
+function updatePreview() {
+  const barcode = normalize(els.barcodeInput.value);
+  if (!barcode) {
+    els.itemPreview.textContent = "Ürün bekleniyor";
+    els.itemPreview.className = "item-preview";
+    els.scanMode.textContent = "Hazır";
+    return;
+  }
+
+  const item = state.items.find((entry) => normalize(entry.barcode) === barcode);
+  if (!item) {
+    els.itemPreview.textContent = "Bu barkod bulunamadı";
+    els.itemPreview.className = "item-preview error";
+    els.scanMode.textContent = "Bulunamadı";
+    return;
+  }
+
+  const actionText = item.status === "OUT" ? "Giriş yapılacak" : "Çıkış yapılacak";
+  els.itemPreview.textContent = `${item.barcode} | ${item.type} | ${item.name} | ${actionText}`;
+  els.itemPreview.className = "item-preview ready";
+  els.scanMode.textContent = actionText;
+  if (item.status === "OUT" && !els.personInput.value) els.personInput.value = item.holder;
+}
+
+function statusBadge(status) {
+  const labels = { IN: "Stokta", OUT: "Dışarıda", ADD: "Eklendi", REMOVE: "Çıkarıldı", REMOVED: "Çıkarıldı" };
+  const cls = status === "OUT" ? "out" : status === "REMOVE" || status === "REMOVED" ? "removed" : "in";
+  return `<span class="badge ${cls}">${labels[status] || status}</span>`;
+}
+
+function showError(error) {
+  setMessage("error", error.message || String(error));
+}
+
+function showManageError(error) {
+  setManageMessage("error", error.message || String(error));
+}
+
+function setMessage(type, text) {
+  els.message.textContent = text;
+  els.message.className = type ? `message ${type}` : "message";
+}
+
+function setManageMessage(type, text) {
+  els.manageMessage.textContent = text;
+  els.manageMessage.className = type ? `message ${type}` : "message";
+}
+
+function normalize(value) {
+  return String(value || "").trim().toLocaleUpperCase("tr-TR");
+}
+
+function formatDate(value) {
+  return new Intl.DateTimeFormat("tr-TR", { dateStyle: "short", timeStyle: "short" }).format(new Date(value));
+}
+
+function code128Svg(value, height = 44) {
+  const patterns = [
+    "212222","222122","222221","121223","121322","131222","122213","122312","132212","221213","221312","231212","112232","122132","122231","113222","123122","123221","223211","221132","221231","213212","223112","312131","311222","321122","321221","312212","322112","322211","212123","212321","232121","111323","131123","131321","112313","132113","132311","211313","231113","231311","112133","112331","132131","113123","113321","133121","313121","211331","231131","213113","213311","213131","311123","311321","331121","312113","312311","332111","314111","221411","431111","111224","111422","121124","121421","141122","141221","112214","112412","122114","122411","142112","142211","241211","221114","413111","241112","134111","111242","121142","121241","114212","124112","124211","411212","421112","421211","212141","214121","412121","111143","111341","131141","114113","114311","411113","411311","113141","114131","311141","411131","211412","211214","211232","2331112"
+  ];
+  const codes = [104];
+  for (const char of value) codes.push(char.charCodeAt(0) - 32);
+  const checksum = codes.reduce((sum, code, index) => sum + code * (index || 1), 0) % 103;
+  codes.push(checksum, 106);
+  const modules = codes.map((code) => patterns[code]).join("");
+  let x = 0;
+  const bars = [];
+  for (let i = 0; i < modules.length; i += 1) {
+    const width = Number(modules[i]);
+    if (i % 2 === 0) bars.push(`<rect x="${x}" y="0" width="${width}" height="${height}"></rect>`);
+    x += width;
+  }
+  return `<svg class="barcode-svg" viewBox="0 0 ${x} ${height}" role="img" aria-label="${escapeHtml(value)}">${bars.join("")}</svg>`;
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+</script>
