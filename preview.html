@@ -126,7 +126,7 @@
           <div class="panel-header"><div><h3>Barkod ile giris / cikis</h3><p>Okuyucu barkodu alana yazar. Enter ile cikis veya iade islenir.</p></div><span class="status-pill" id="scanMode">Hazir</span></div>
           <form class="scan-grid" id="scanForm">
             <div class="scan-primary"><label for="barcodeInput">Barkod</label><input id="barcodeInput" class="barcode-input" type="text" placeholder="FD001 okutun" autofocus /><div class="item-preview" id="itemPreview">Urun bekleniyor</div></div>
-            <div class="scan-side"><label for="personInput">Teslim alan / iade eden</label><input id="personInput" type="text" placeholder="Ad soyad veya birim" /><label for="noteInput">Not</label><input id="noteInput" type="text" placeholder="Istege bagli" /><div class="actions"><button class="primary" type="submit">Kaydet</button><button class="secondary" type="button" id="clearButton">Temizle</button></div></div>
+            <div class="scan-side"><label for="personInput">Teslim alan / iade eden</label><input id="personInput" type="text" list="personOptions" placeholder="Listeden secin veya yazin" /><datalist id="personOptions"></datalist><label for="noteInput">Not</label><input id="noteInput" type="text" placeholder="Istege bagli" /><div class="actions"><button class="primary" type="submit">Kaydet</button><button class="secondary" type="button" id="clearButton">Temizle</button></div></div>
           </form>
           <div class="message" id="message"></div>
         </section>
@@ -159,15 +159,161 @@
 
     <script>
       const typeSettings = { "Flash Disk": { prefix: "FD" }, "Ses Kayit Cihazi": { prefix: "SR" }, Kamera: { prefix: "KM" } };
+      const personOptions = [
+        "Level Coordinators",
+        "Testing",
+        "Teacher Trainers",
+        "HR (Buket Merve Kurban)",
+        "Faculty Secretary (Ebru Serdar Karaduman)",
+        "Planning (Sevda Acaloğlu & Ayşe Sefer)",
+        "DOLP (Merve Selçuk)",
+        "Student Affairs (Burcu Karataş & Mihriban Güngör)",
+        "LTOC (Sedat Çilingir)",
+        "Aleyna Öneç",
+        "Ali Yiğit Könez",
+        "Arkadaş Su Esmen Tek",
+        "Ayfer Küçükbayram Özadalı",
+        "Aylin Akyar",
+        "Ayşe Sefer",
+        "Ayşegül Altuneli",
+        "Ayşegül Yurttaş",
+        "Aysel Fırat",
+        "Bahar Güner",
+        "Bahar Sönmez",
+        "Berke Nart",
+        "Bikem Seçen Ünver",
+        "Birgül Apaydın Eyiakkan",
+        "Birol Türkmen",
+        "Buket Merve Kurban",
+        "Buket Yazıcı",
+        "Burçin Sever",
+        "Burcu Bayraktar",
+        "Burcu Kosova",
+        "Buse Akkoyun",
+        "Buse Güner Usta",
+        "Buse Özge Kartal",
+        "Büşra Tan Yiğit",
+        "Cağrı Şahin",
+        "Can Akın",
+        "Cansen Aşuroğlu Yılmaz",
+        "Cecilia Kinnear",
+        "Cem Karasu",
+        "Ceren Tutal",
+        "Christopher Steven Wall",
+        "Ciğdem Genç",
+        "Culya Yapıcı",
+        "Damla Ağtaş",
+        "Didem Avcı",
+        "Dilara Neslihan Yanık",
+        "Ebru Davarcı",
+        "Ebru Ezberci Webb",
+        "Ebru Serdar Karaduman",
+        "Ebru Yalçın Özden",
+        "Elainne Dickinson",
+        "Elif Bilgin",
+        "Elif Ege Taneri",
+        "Elif Paracıkoğlu",
+        "Elif Sara Buhara",
+        "Elisabeth Edwards",
+        "Emine Kılıç Tolan",
+        "Emine Sena Koçak",
+        "Esra Koç",
+        "Eva Büyüksimkeşyan",
+        "Ezgi Sözmen",
+        "Fatma Erden",
+        "Feyza Kasımoğlu",
+        "Gökçe Aybat",
+        "Göker Talay",
+        "Güven Gönüllü",
+        "Güzin Çetindemir",
+        "Halil Emre Aktay",
+        "Hasan Sadık Kelepir",
+        "Hatice Koçan Kılıç",
+        "Hüma Taş",
+        "Iana Deleva",
+        "Irem Nur Topçu",
+        "Irem Su Yiğit",
+        "Ismigül Güner - L1",
+        "Izlem Atai Sümer",
+        "Kadernur Akpınar",
+        "Kemal Boşnak",
+        "Kerem Başaran",
+        "Lorin Akbıyık",
+        "Maviş Eren Görür",
+        "Mehmet Akçay",
+        "Mehpare Çomoğlu",
+        "Mehtap Tunç Zengin",
+        "Melani Konca",
+        "Merve Selçuk",
+        "Merzuka Didem Ayan Gürkan",
+        "Michael Saul Jackson",
+        "Mine Çimen",
+        "Nakşiye Berkim Gürkan",
+        "Natali Emirzeoğlu",
+        "Nazlı Kalkavan Kurul - L2",
+        "Nazlı Sönmez",
+        "Nedim Temel",
+        "Neil Patrick Doherty",
+        "Nermin Yusuf",
+        "Nuran Yalçın",
+        "Nuray İmre",
+        "Nurşah Tuna",
+        "Nurşen Karabulut",
+        "Nurten Arslan",
+        "Ogün İbrahim Çelik - L5",
+        "Oğuzhan Koçak",
+        "Ozge Emir Patan - L4",
+        "Ozge Turhan",
+        "Pınar Ballıpınar",
+        "Pınar Sinan Malec",
+        "Pınar Sinan Malec (PT - EAP&Prep)",
+        "Rana Okandan",
+        "Rodney Anthony McKee",
+        "Sami Yılmaz",
+        "Sara Selen Öztürk",
+        "Sebahattin Tuncer",
+        "Sebnem Baytekin",
+        "Seda Yeşildeniz",
+        "Sedat Çilingir",
+        "Seher Balkaya Bulat",
+        "Senay Güneş",
+        "Senem Didar Kaynar",
+        "Sera Meryem Yenice",
+        "Serda Arslan",
+        "Serpil Göğebakan",
+        "Serra Tüzer",
+        "Sevda Acaloğlu",
+        "Seyma Nur Ak",
+        "Sezen Alakuş",
+        "Sinem Ertekin",
+        "Sirin Akpınar",
+        "Sule Genç",
+        "Sümeyra Mürvet Aydın",
+        "Teksin Pelit Akdemir",
+        "Tuba Tanrıverdi",
+        "Tuğba Küçük Kalsen",
+        "Tuğçe Budak - L3",
+        "Tuğçe Cömert",
+        "Ulkan Yaşargil",
+        "Umran Kırbıyık",
+        "Umran Omaç",
+        "Volkan Gül",
+        "Yiğit Güleoğlu",
+        "Yıldız Altuntaş",
+        "Zekiye Tüge Topcu Gülşen",
+        "Zeynep Çiğdem Eren",
+        "Zülal Güneş",
+      ];
       const state = { items: seedItems(), movements: [], nextNumbers: { FD: 149, SR: 103, KM: 3 } };
       const $ = (id) => document.getElementById(id);
       const els = {
         metrics: $("metrics"), navItems: document.querySelectorAll(".nav-item"), panels: document.querySelectorAll(".panel"),
-        barcodeInput: $("barcodeInput"), personInput: $("personInput"), noteInput: $("noteInput"), scanForm: $("scanForm"), clearButton: $("clearButton"), itemPreview: $("itemPreview"), message: $("message"), scanMode: $("scanMode"),
+        barcodeInput: $("barcodeInput"), personInput: $("personInput"), personOptions: $("personOptions"), noteInput: $("noteInput"), scanForm: $("scanForm"), clearButton: $("clearButton"), itemPreview: $("itemPreview"), message: $("message"), scanMode: $("scanMode"),
         inventoryRows: $("inventoryRows"), logRows: $("logRows"), inventorySearch: $("inventorySearch"), addItemForm: $("addItemForm"), addType: $("addType"), addBarcode: $("addBarcode"), addName: $("addName"), removeItemForm: $("removeItemForm"), removeBarcode: $("removeBarcode"), removeReason: $("removeReason"), manageMessage: $("manageMessage"),
         labelFilter: $("labelFilter"), nextLabelType: $("nextLabelType"), labelMode: $("labelMode"), labelSheet: $("labelSheet")
       };
 
+      renderPersonOptions();
       bind();
       render();
 
@@ -198,6 +344,10 @@
         els.labelFilter.addEventListener("change", renderLabels);
         els.nextLabelType.addEventListener("change", renderLabels);
         els.labelMode.addEventListener("change", renderLabels);
+      }
+
+      function renderPersonOptions() {
+        els.personOptions.innerHTML = personOptions.map((name) => `<option value="${escapeHtml(name)}"></option>`).join("");
       }
 
       function switchView(view) {
@@ -291,6 +441,14 @@
       }
       function normalize(value) { return String(value || "").trim().toUpperCase(); }
       function show(el, type, text) { el.className = `message ${type}`; el.textContent = text; }
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
     </script>
   </body>
 </html>
