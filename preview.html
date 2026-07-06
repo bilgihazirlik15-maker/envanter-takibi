@@ -133,7 +133,7 @@
 
         <section class="panel" data-panel="inventory">
           <div class="panel-header"><div><h3>Envanter</h3><p>148 flash disk, 102 ses kayit cihazi ve 2 kamera.</p></div><input id="inventorySearch" type="search" placeholder="Urun ara" /></div>
-          <div class="table-wrap"><table><thead><tr><th>Barkod</th><th>Tur</th><th>Urun</th><th>Durum</th><th>Kimde</th></tr></thead><tbody id="inventoryRows"></tbody></table></div>
+          <div class="table-wrap"><table><thead><tr><th>Barkod</th><th>Tur</th><th>Urun</th><th>Durum</th><th>Kimde</th><th>Son islem tarihi</th></tr></thead><tbody id="inventoryRows"></tbody></table></div>
         </section>
 
         <section class="panel" data-panel="manage">
@@ -328,7 +328,7 @@
       function makeItems(prefix, type, count) {
         return Array.from({ length: count }, (_, index) => {
           const number = index + 1;
-          return { barcode: prefix + String(number).padStart(3, "0"), type, name: `${type} ${number}`, status: "IN", holder: "" };
+          return { barcode: prefix + String(number).padStart(3, "0"), type, name: `${type} ${number}`, status: "IN", holder: "", updatedAt: new Date() };
         });
       }
 
@@ -364,6 +364,7 @@
         const action = item.status === "OUT" ? "IN" : "OUT";
         item.status = action;
         item.holder = action === "OUT" ? els.personInput.value.trim() : "";
+        item.updatedAt = new Date();
         state.movements.unshift({ time: new Date(), barcode: item.barcode, itemName: item.name, action, person: els.personInput.value || "Hazirlik Programi", note: els.noteInput.value });
         els.barcodeInput.value = "";
         els.noteInput.value = "";
@@ -378,7 +379,7 @@
         const number = state.nextNumbers[setting.prefix];
         const barcode = setting.prefix + String(number).padStart(3, "0");
         const name = els.addName.value.trim() || `${type} ${number}`;
-        state.items.push({ barcode, type, name, status: "IN", holder: "" });
+        state.items.push({ barcode, type, name, status: "IN", holder: "", updatedAt: new Date() });
         state.nextNumbers[setting.prefix] += 1;
         state.movements.unshift({ time: new Date(), barcode, itemName: name, action: "ADD", person: "Hazirlik Programi", note: "Envantere eklendi" });
         els.addName.value = "";
@@ -401,7 +402,7 @@
       }
       function renderInventory() {
         const query = normalize(els.inventorySearch.value);
-        els.inventoryRows.innerHTML = state.items.filter((item) => !query || normalize(`${item.barcode} ${item.type} ${item.name}`).includes(query)).map((item) => `<tr><td><strong>${item.barcode}</strong></td><td>${item.type}</td><td>${item.name}</td><td>${badge(item.status)}</td><td>${item.holder || "Hazir"}</td></tr>`).join("");
+        els.inventoryRows.innerHTML = state.items.filter((item) => !query || normalize(`${item.barcode} ${item.type} ${item.name}`).includes(query)).map((item) => `<tr><td><strong>${item.barcode}</strong></td><td>${item.type}</td><td>${item.name}</td><td>${badge(item.status)}</td><td>${item.holder || "Hazir"}</td><td>${formatDate(item.updatedAt)}</td></tr>`).join("");
       }
       function renderLogs() {
         els.logRows.innerHTML = state.movements.map((log) => `<tr><td>${log.time.toLocaleString("tr-TR")}</td><td><strong>${log.barcode}</strong></td><td>${log.itemName}</td><td>${badge(log.action)}</td><td>${log.person}</td><td>${log.note || ""}</td></tr>`).join("") || `<tr><td colspan="6">Henuz hareket yok.</td></tr>`;
@@ -438,6 +439,10 @@
       function badge(status) {
         const labels = { IN: "Stokta", OUT: "Disarida", ADD: "Eklendi" };
         return `<span class="badge ${status === "OUT" ? "out" : "in"}">${labels[status] || status}</span>`;
+      }
+      function formatDate(value) {
+        if (!value) return "";
+        return new Intl.DateTimeFormat("tr-TR", { dateStyle: "short", timeStyle: "short" }).format(new Date(value));
       }
       function normalize(value) { return String(value || "").trim().toUpperCase(); }
       function show(el, type, text) { el.className = `message ${type}`; el.textContent = text; }

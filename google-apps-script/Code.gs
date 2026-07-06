@@ -161,6 +161,7 @@ function readItems_() {
       name: row[2],
       status: row[3],
       holder: row[4],
+      updatedAt: row[8] || row[7],
     }));
 }
 
