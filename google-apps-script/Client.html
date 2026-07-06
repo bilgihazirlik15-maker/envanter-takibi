@@ -7,6 +7,12 @@ const typeSettings = {
   Kamera: { prefix: "KM" },
 };
 
+const summaryTypes = [
+  { label: "Recorder", type: "Ses Kayıt Cihazı" },
+  { label: "Flash Disk", type: "Flash Disk" },
+  { label: "Camera", type: "Kamera" },
+];
+
 const personOptions = [
   "Level Coordinators",
   "Testing",
@@ -155,6 +161,7 @@ const personOptions = [
 
 const els = {
   metrics: document.getElementById("metrics"),
+  summaryRows: document.getElementById("summaryRows"),
   navItems: document.querySelectorAll(".nav-item"),
   panels: document.querySelectorAll(".panel"),
   barcodeInput: document.getElementById("barcodeInput"),
@@ -294,6 +301,7 @@ function clearScan() {
 
 function render() {
   renderMetrics();
+  renderSummary();
   renderInventoryFilterOptions();
   renderInventory();
   renderLogs();
@@ -301,6 +309,21 @@ function render() {
   renderLabels();
   updateNextBarcode();
   updatePreview();
+}
+
+function renderSummary() {
+  els.summaryRows.innerHTML = summaryTypes.map(({ label, type }) => {
+    const items = state.items.filter((item) => item.type === type);
+    const inStock = items.filter((item) => item.status === "IN").length;
+    const out = items.filter((item) => item.status === "OUT").length;
+    return `
+      <tr>
+        <td>${escapeHtml(label)}</td>
+        <td>${items.length}</td>
+        <td>${inStock}</td>
+        <td>${out}</td>
+      </tr>`;
+  }).join("");
 }
 
 function handleInventoryFilterChange(event) {

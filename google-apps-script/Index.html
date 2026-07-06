@@ -19,6 +19,7 @@
         </div>
         <nav class="nav" aria-label="Bölümler">
           <button class="nav-item active" data-view="scan">Giriş / Çıkış</button>
+          <button class="nav-item" data-view="summary">Summary</button>
           <button class="nav-item" data-view="inventory">Envanter</button>
           <button class="nav-item" data-view="manage">Ürün Yönetimi</button>
           <button class="nav-item" data-view="labels">Barkod Yazdır</button>
@@ -33,6 +34,28 @@
         </header>
 
         <section class="metrics" id="metrics"></section>
+
+        <section class="panel" data-panel="summary">
+          <div class="panel-header">
+            <div>
+              <h3>Summary</h3>
+              <p>Kategorilere göre toplam, stokta ve dışarıda ürün sayıları.</p>
+            </div>
+          </div>
+          <div class="summary-wrap">
+            <table class="summary-table">
+              <thead>
+                <tr>
+                  <th>Category</th>
+                  <th>Total Items</th>
+                  <th>In Stock (IN)</th>
+                  <th>Loaned Out (OUT)</th>
+                </tr>
+              </thead>
+              <tbody id="summaryRows"></tbody>
+            </table>
+          </div>
+        </section>
 
         <section class="panel active" data-panel="scan">
           <div class="panel-header">
