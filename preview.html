@@ -73,6 +73,8 @@
       table { width: 100%; min-width: 760px; border-collapse: collapse; }
       th, td { padding: 12px 14px; border-bottom: 1px solid var(--line); text-align: left; }
       th { position: sticky; top: 0; background: #eef3f1; color: #3d4a45; font-size: 12px; font-weight: 560; text-transform: uppercase; }
+      .filter-row th { top: 41px; padding: 8px; background: #f8faf9; text-transform: none; }
+      .filter-row input { min-width: 110px; padding: 8px 9px; border-radius: 6px; font-size: 12px; }
       .badge { display: inline-flex; min-width: 84px; min-height: 28px; align-items: center; justify-content: center; border-radius: 999px; padding: 4px 10px; font-size: 12px; font-weight: 560; }
       .badge.in { background: #dff3e8; color: var(--green); }
       .badge.out { background: #fff1d6; color: var(--amber); }
@@ -133,7 +135,7 @@
 
         <section class="panel" data-panel="inventory">
           <div class="panel-header"><div><h3>Envanter</h3><p>148 flash disk, 102 ses kayit cihazi ve 2 kamera.</p></div><input id="inventorySearch" type="search" placeholder="Urun ara" /></div>
-          <div class="table-wrap"><table><thead><tr><th>Barkod</th><th>Tur</th><th>Urun</th><th>Durum</th><th>Kimde</th><th>Son islem tarihi</th></tr></thead><tbody id="inventoryRows"></tbody></table></div>
+          <div class="table-wrap"><table><thead><tr><th>Barkod</th><th>Tur</th><th>Urun</th><th>Durum</th><th>Kimde</th><th>Son islem tarihi</th></tr><tr class="filter-row"><th><input data-inventory-filter="barcode" type="search" placeholder="Barkod" /></th><th><input data-inventory-filter="type" type="search" placeholder="Tur" /></th><th><input data-inventory-filter="name" type="search" placeholder="Urun" /></th><th><input data-inventory-filter="status" type="search" placeholder="Durum" /></th><th><input data-inventory-filter="holder" type="search" placeholder="Kimde" /></th><th><input data-inventory-filter="updatedAt" type="search" placeholder="Tarih / saat" /></th></tr></thead><tbody id="inventoryRows"></tbody></table></div>
         </section>
 
         <section class="panel" data-panel="manage">
@@ -309,7 +311,7 @@
       const els = {
         metrics: $("metrics"), navItems: document.querySelectorAll(".nav-item"), panels: document.querySelectorAll(".panel"),
         barcodeInput: $("barcodeInput"), personInput: $("personInput"), personOptions: $("personOptions"), noteInput: $("noteInput"), scanForm: $("scanForm"), clearButton: $("clearButton"), itemPreview: $("itemPreview"), message: $("message"), scanMode: $("scanMode"),
-        inventoryRows: $("inventoryRows"), logRows: $("logRows"), inventorySearch: $("inventorySearch"), addItemForm: $("addItemForm"), addType: $("addType"), addBarcode: $("addBarcode"), addName: $("addName"), removeItemForm: $("removeItemForm"), removeBarcode: $("removeBarcode"), removeReason: $("removeReason"), manageMessage: $("manageMessage"),
+        inventoryRows: $("inventoryRows"), logRows: $("logRows"), inventorySearch: $("inventorySearch"), inventoryFilters: document.querySelectorAll("[data-inventory-filter]"), addItemForm: $("addItemForm"), addType: $("addType"), addBarcode: $("addBarcode"), addName: $("addName"), removeItemForm: $("removeItemForm"), removeBarcode: $("removeBarcode"), removeReason: $("removeReason"), manageMessage: $("manageMessage"),
         labelFilter: $("labelFilter"), nextLabelType: $("nextLabelType"), labelMode: $("labelMode"), labelSheet: $("labelSheet")
       };
 
@@ -338,6 +340,7 @@
         els.clearButton.addEventListener("click", () => { els.barcodeInput.value = ""; els.personInput.value = ""; els.noteInput.value = ""; updatePreview(); });
         els.barcodeInput.addEventListener("input", updatePreview);
         els.inventorySearch.addEventListener("input", renderInventory);
+        els.inventoryFilters.forEach((input) => input.addEventListener("input", renderInventory));
         els.addType.addEventListener("change", updateNextBarcode);
         els.addItemForm.addEventListener("submit", addItem);
         els.removeItemForm.addEventListener("submit", removeItem);
@@ -402,7 +405,26 @@
       }
       function renderInventory() {
         const query = normalize(els.inventorySearch.value);
-        els.inventoryRows.innerHTML = state.items.filter((item) => !query || normalize(`${item.barcode} ${item.type} ${item.name}`).includes(query)).map((item) => `<tr><td><strong>${item.barcode}</strong></td><td>${item.type}</td><td>${item.name}</td><td>${badge(item.status)}</td><td>${item.holder || "Hazir"}</td><td>${formatDate(item.updatedAt)}</td></tr>`).join("");
+        const filters = getInventoryFilters();
+        els.inventoryRows.innerHTML = state.items.filter((item) => inventoryMatches(item, query, filters)).map((item) => `<tr><td><strong>${item.barcode}</strong></td><td>${item.type}</td><td>${item.name}</td><td>${badge(item.status)}</td><td>${item.holder || "Hazir"}</td><td>${formatDate(item.updatedAt)}</td></tr>`).join("") || `<tr><td colspan="6">Kayit bulunamadi.</td></tr>`;
+      }
+      function getInventoryFilters() {
+        return Array.from(els.inventoryFilters).reduce((acc, input) => {
+          acc[input.dataset.inventoryFilter] = normalize(input.value || "");
+          return acc;
+        }, {});
+      }
+      function inventoryMatches(item, query, filters) {
+        const values = {
+          barcode: item.barcode,
+          type: item.type,
+          name: item.name,
+          status: statusText(item.status),
+          holder: item.holder || "Hazir",
+          updatedAt: formatDate(item.updatedAt),
+        };
+        const haystack = normalize(Object.values(values).join(" "));
+        return (!query || haystack.includes(query)) && Object.entries(filters).every(([key, value]) => !value || normalize(values[key]).includes(value));
       }
       function renderLogs() {
         els.logRows.innerHTML = state.movements.map((log) => `<tr><td>${log.time.toLocaleString("tr-TR")}</td><td><strong>${log.barcode}</strong></td><td>${log.itemName}</td><td>${badge(log.action)}</td><td>${log.person}</td><td>${log.note || ""}</td></tr>`).join("") || `<tr><td colspan="6">Henuz hareket yok.</td></tr>`;
@@ -437,8 +459,11 @@
         els.itemPreview.textContent = !barcode ? "Urun bekleniyor" : item ? `${item.barcode} | ${item.type} | ${item.name}` : "Bu barkod bulunamadi";
       }
       function badge(status) {
+        return `<span class="badge ${status === "OUT" ? "out" : "in"}">${statusText(status)}</span>`;
+      }
+      function statusText(status) {
         const labels = { IN: "Stokta", OUT: "Disarida", ADD: "Eklendi" };
-        return `<span class="badge ${status === "OUT" ? "out" : "in"}">${labels[status] || status}</span>`;
+        return labels[status] || status;
       }
       function formatDate(value) {
         if (!value) return "";

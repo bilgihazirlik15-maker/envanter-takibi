@@ -169,6 +169,7 @@ const els = {
   inventoryRows: document.getElementById("inventoryRows"),
   logRows: document.getElementById("logRows"),
   inventorySearch: document.getElementById("inventorySearch"),
+  inventoryFilters: document.querySelectorAll("[data-inventory-filter]"),
   addItemForm: document.getElementById("addItemForm"),
   addBarcode: document.getElementById("addBarcode"),
   addType: document.getElementById("addType"),
@@ -209,6 +210,7 @@ function bindEvents() {
   els.clearButton.addEventListener("click", clearScan);
   els.barcodeInput.addEventListener("input", updatePreview);
   els.inventorySearch.addEventListener("input", renderInventory);
+  els.inventoryFilters.forEach((input) => input.addEventListener("input", renderInventory));
   els.addItemForm.addEventListener("submit", handleAddItem);
   els.removeItemForm.addEventListener("submit", handleRemoveItem);
   els.addType.addEventListener("change", updateNextBarcode);
@@ -310,8 +312,9 @@ function renderMetrics() {
 
 function renderInventory() {
   const query = normalize(els.inventorySearch.value || "");
+  const filters = getInventoryFilters();
   const rows = state.items
-    .filter((item) => !query || normalize(`${item.barcode} ${item.type} ${item.name} ${item.holder}`).includes(query))
+    .filter((item) => inventoryMatches(item, query, filters))
     .map((item) => `
       <tr>
         <td><strong>${escapeHtml(item.barcode)}</strong></td>
@@ -322,6 +325,27 @@ function renderInventory() {
         <td>${formatDate(item.updatedAt)}</td>
       </tr>`);
   els.inventoryRows.innerHTML = rows.join("") || `<tr><td colspan="6">Kayıt bulunamadı.</td></tr>`;
+}
+
+function getInventoryFilters() {
+  return Array.from(els.inventoryFilters).reduce((acc, input) => {
+    acc[input.dataset.inventoryFilter] = normalize(input.value || "");
+    return acc;
+  }, {});
+}
+
+function inventoryMatches(item, query, filters) {
+  const values = {
+    barcode: item.barcode,
+    type: item.type,
+    name: item.name,
+    status: statusText(item.status),
+    holder: item.holder || "Hazır",
+    updatedAt: formatDate(item.updatedAt),
+  };
+  const haystack = normalize(Object.values(values).join(" "));
+  return (!query || haystack.includes(query)) &&
+    Object.entries(filters).every(([key, value]) => !value || normalize(values[key]).includes(value));
 }
 
 function renderLogs() {
@@ -413,9 +437,14 @@ function updatePreview() {
 }
 
 function statusBadge(status) {
-  const labels = { IN: "Stokta", OUT: "Dışarıda", ADD: "Eklendi", REMOVE: "Çıkarıldı", REMOVED: "Çıkarıldı" };
+  const label = statusText(status);
   const cls = status === "OUT" ? "out" : status === "REMOVE" || status === "REMOVED" ? "removed" : "in";
-  return `<span class="badge ${cls}">${labels[status] || status}</span>`;
+  return `<span class="badge ${cls}">${label}</span>`;
+}
+
+function statusText(status) {
+  const labels = { IN: "Stokta", OUT: "Dışarıda", ADD: "Eklendi", REMOVE: "Çıkarıldı", REMOVED: "Çıkarıldı" };
+  return labels[status] || status;
 }
 
 function showError(error) {
