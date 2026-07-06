@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BILGI Envanter Takibi - Ilk Taslak</title>
+    <style>
+      :root {
+        --bg: #f4f6f8;
+        --panel: #ffffff;
+        --ink: #18211f;
+        --muted: #66736f;
+        --line: #dbe3e0;
+        --green: #18794e;
+        --blue: #245f9f;
+        --amber: #a86403;
+        --red: #bd2d2d;
+        --sidebar: #10231d;
+        --sidebar-soft: #1f3b31;
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-width: 320px;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: "Segoe UI Variable Text", "Segoe UI", Aptos, system-ui, sans-serif;
+      }
+
+      button, input, select { font: inherit; }
+      button { cursor: pointer; }
+      .app { display: grid; grid-template-columns: 286px minmax(0, 1fr); min-height: 100vh; }
+      .sidebar { display: flex; flex-direction: column; gap: 28px; padding: 28px 20px; background: var(--sidebar); color: #f7fbf8; }
+      .brand { display: flex; align-items: center; gap: 14px; }
+      .brand-mark { display: grid; width: 58px; height: 44px; place-items: center; border-radius: 8px; background: #d9efe4; color: #10231d; font-size: 13px; font-weight: 700; }
+      h1, h2, h3, p { margin: 0; }
+      .brand h1 { font-size: 21px; font-weight: 600; }
+      .brand p { color: #bfd2ca; }
+      .nav { display: grid; gap: 8px; }
+      .nav-item { min-height: 44px; border: 0; border-radius: 8px; padding: 10px 12px; background: transparent; color: #dce9e4; text-align: left; font-weight: 500; }
+      .nav-item.active, .nav-item:hover { background: var(--sidebar-soft); color: #fff; }
+      .main { min-width: 0; padding: 26px; }
+      .page-header { margin-bottom: 18px; }
+      .page-header p { color: var(--muted); font-size: 13px; font-weight: 600; text-transform: uppercase; }
+      .page-header h2 { margin-top: 4px; font-size: 30px; font-weight: 560; }
+      .metrics { display: grid; grid-template-columns: repeat(4, minmax(140px, 1fr)); gap: 12px; margin-bottom: 18px; }
+      .metric, .panel { border: 1px solid var(--line); border-radius: 8px; background: var(--panel); box-shadow: 0 12px 30px rgba(22, 33, 30, 0.07); }
+      .metric { min-height: 104px; padding: 18px; }
+      .metric span { color: var(--muted); font-size: 13px; font-weight: 520; }
+      .metric strong { display: block; margin-top: 8px; font-size: 32px; font-weight: 560; }
+      .panel { display: none; overflow: hidden; }
+      .panel.active { display: block; }
+      .panel-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 18px; border-bottom: 1px solid var(--line); background: #fbfcfc; }
+      .panel-header h3 { font-size: 20px; font-weight: 560; }
+      .panel-header p { margin-top: 4px; color: var(--muted); }
+      .status-pill { min-width: 126px; border-radius: 999px; padding: 7px 12px; background: #e8f1ed; color: var(--green); text-align: center; font-weight: 560; }
+      .scan-grid, .manage-grid { display: grid; grid-template-columns: minmax(320px, 1.15fr) minmax(280px, 0.85fr); gap: 16px; padding: 18px; }
+      .scan-primary, .scan-side, .manage-card { display: grid; align-content: start; gap: 10px; border: 1px solid var(--line); border-radius: 8px; padding: 16px; background: #fbfcfc; }
+      label { color: var(--muted); font-size: 13px; font-weight: 520; }
+      input, select { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 12px; background: #fff; color: var(--ink); outline: none; }
+      input:focus, select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(36, 95, 159, 0.13); }
+      .barcode-input { min-height: 70px; font-size: 30px; font-weight: 500; }
+      .item-preview, .message { min-height: 46px; border-radius: 8px; padding: 12px; background: #eef3f1; color: var(--muted); font-weight: 500; }
+      .ready, .message.success { background: #dff3e8; color: var(--green); }
+      .error { background: #ffe0df; color: var(--red); }
+      .actions, .print-controls { display: flex; gap: 10px; }
+      .primary, .secondary, .danger { min-height: 42px; border-radius: 8px; padding: 10px 14px; font-weight: 560; white-space: nowrap; }
+      .primary { border: 0; background: var(--green); color: #fff; }
+      .secondary { border: 1px solid var(--line); background: #fff; color: var(--ink); }
+      .danger { border: 0; background: var(--red); color: #fff; }
+      .table-wrap, .label-sheet { max-height: calc(100vh - 270px); overflow: auto; }
+      table { width: 100%; min-width: 760px; border-collapse: collapse; }
+      th, td { padding: 12px 14px; border-bottom: 1px solid var(--line); text-align: left; }
+      th { position: sticky; top: 0; background: #eef3f1; color: #3d4a45; font-size: 12px; font-weight: 560; text-transform: uppercase; }
+      .badge { display: inline-flex; min-width: 84px; min-height: 28px; align-items: center; justify-content: center; border-radius: 999px; padding: 4px 10px; font-size: 12px; font-weight: 560; }
+      .badge.in { background: #dff3e8; color: var(--green); }
+      .badge.out { background: #fff1d6; color: var(--amber); }
+      .label-sheet { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; padding: 18px; }
+      .barcode-label { display: grid; gap: 8px; min-height: 138px; border: 1px solid var(--line); border-radius: 8px; padding: 12px; background: #fff; break-inside: avoid; }
+      .barcode-label div { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+      .barcode-label strong { font-size: 18px; font-weight: 560; }
+      .barcode-label span, .barcode-label p { margin: 0; color: var(--muted); font-size: 12px; }
+      .bars { height: 52px; background: repeating-linear-gradient(90deg, #111 0 2px, #fff 2px 4px, #111 4px 5px, #fff 5px 9px); }
+      .label-sheet.mini { grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); }
+      .label-sheet.mini .barcode-label { min-height: 35px; gap: 2px; padding: 3px 4px; border-radius: 4px; }
+      .label-sheet.mini .barcode-label strong { font-size: 9px; }
+      .label-sheet.mini .barcode-label span, .label-sheet.mini .barcode-label p { font-size: 6px; line-height: 1; }
+      .label-sheet.mini .bars { height: 14px; }
+      .message { margin: 0 18px 18px; }
+
+      @media (max-width: 900px) {
+        .app, .metrics, .scan-grid, .manage-grid { grid-template-columns: 1fr; }
+        .panel-header, .actions, .print-controls { flex-direction: column; align-items: stretch; }
+      }
+
+      @media print {
+        @page { size: A4; margin: 10mm; }
+        .sidebar, .page-header, .metrics, .panel:not([data-panel="labels"]), .panel[data-panel="labels"] .panel-header { display: none !important; }
+        .app, .main, .panel, .label-sheet { display: block; min-height: auto; padding: 0; margin: 0; border: 0; box-shadow: none; overflow: visible; }
+        .label-sheet { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6mm; max-height: none; }
+        .label-sheet.mini { grid-template-columns: repeat(8, 18mm); gap: 2mm; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">BILGI</div>
+          <div><h1>Envanter Takibi</h1><p>Hazirlik Programi</p></div>
+        </div>
+        <nav class="nav" aria-label="Bolumler">
+          <button class="nav-item active" data-view="scan">Giris / Cikis</button>
+          <button class="nav-item" data-view="inventory">Envanter</button>
+          <button class="nav-item" data-view="manage">Urun Yonetimi</button>
+          <button class="nav-item" data-view="labels">Barkod Yazdir</button>
+          <button class="nav-item" data-view="logs">Hareketler</button>
+        </nav>
+      </aside>
+      <main class="main">
+        <header class="page-header"><p>Istanbul Bilgi Universitesi</p><h2>Hazirlik Programi, Envanter Takibi</h2></header>
+        <section class="metrics" id="metrics"></section>
+
+        <section class="panel active" data-panel="scan">
+          <div class="panel-header"><div><h3>Barkod ile giris / cikis</h3><p>Okuyucu barkodu alana yazar. Enter ile cikis veya iade islenir.</p></div><span class="status-pill" id="scanMode">Hazir</span></div>
+          <form class="scan-grid" id="scanForm">
+            <div class="scan-primary"><label for="barcodeInput">Barkod</label><input id="barcodeInput" class="barcode-input" type="text" placeholder="FD001 okutun" autofocus /><div class="item-preview" id="itemPreview">Urun bekleniyor</div></div>
+            <div class="scan-side"><label for="personInput">Teslim alan / iade eden</label><input id="personInput" type="text" placeholder="Ad soyad veya birim" /><label for="noteInput">Not</label><input id="noteInput" type="text" placeholder="Istege bagli" /><div class="actions"><button class="primary" type="submit">Kaydet</button><button class="secondary" type="button" id="clearButton">Temizle</button></div></div>
+          </form>
+          <div class="message" id="message"></div>
+        </section>
+
+        <section class="panel" data-panel="inventory">
+          <div class="panel-header"><div><h3>Envanter</h3><p>148 flash disk, 102 ses kayit cihazi ve 2 kamera.</p></div><input id="inventorySearch" type="search" placeholder="Urun ara" /></div>
+          <div class="table-wrap"><table><thead><tr><th>Barkod</th><th>Tur</th><th>Urun</th><th>Durum</th><th>Kimde</th></tr></thead><tbody id="inventoryRows"></tbody></table></div>
+        </section>
+
+        <section class="panel" data-panel="manage">
+          <div class="panel-header"><div><h3>Urun yonetimi</h3><p>Yeni urun eklerken siradaki barkod otomatik verilir.</p></div></div>
+          <div class="manage-grid">
+            <form class="manage-card" id="addItemForm"><h3>Envantere ekle</h3><label>Tur</label><select id="addType"><option>Flash Disk</option><option>Ses Kayit Cihazi</option><option>Kamera</option></select><label>Siradaki barkod</label><input id="addBarcode" readonly /><label>Urun adi</label><input id="addName" placeholder="Bos birakilirsa otomatik ad verilir" /><button class="primary" type="submit">Urunu ekle</button></form>
+            <form class="manage-card" id="removeItemForm"><h3>Envanterden cikar</h3><label>Urun</label><select id="removeBarcode"></select><label>Gerekce</label><input id="removeReason" placeholder="Arizali, kayip, kullanim disi" /><button class="danger" type="submit">Envanterden cikar</button></form>
+          </div>
+          <div class="message" id="manageMessage"></div>
+        </section>
+
+        <section class="panel" data-panel="labels">
+          <div class="panel-header"><div><h3>Barkod yazdir</h3><p>Flash diskler icin mini, ses kayit cihazlari icin standart etiket.</p></div><div class="print-controls"><select id="labelFilter"><option value="next">Siradaki barkod</option><option value="all">Tum urunler</option><option value="Flash Disk">Flash Disk</option><option value="Ses Kayit Cihazi">Ses Kayit Cihazi</option><option value="Kamera">Kamera</option></select><select id="nextLabelType"><option>Flash Disk</option><option>Ses Kayit Cihazi</option><option>Kamera</option></select><select id="labelMode"><option value="mini">Flash Disk Mini Etiket</option><option value="standard">Standart Etiket</option></select><button class="primary" type="button" onclick="window.print()">Yazdir</button></div></div>
+          <div class="label-sheet" id="labelSheet"></div>
+        </section>
+
+        <section class="panel" data-panel="logs">
+          <div class="panel-header"><div><h3>Hareketler</h3><p>Son giris ve cikis kayitlari.</p></div></div>
+          <div class="table-wrap"><table><thead><tr><th>Zaman</th><th>Barkod</th><th>Urun</th><th>Islem</th><th>Kisi / Birim</th><th>Not</th></tr></thead><tbody id="logRows"></tbody></table></div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      const typeSettings = { "Flash Disk": { prefix: "FD" }, "Ses Kayit Cihazi": { prefix: "SR" }, Kamera: { prefix: "KM" } };
+      const state = { items: seedItems(), movements: [], nextNumbers: { FD: 149, SR: 103, KM: 3 } };
+      const $ = (id) => document.getElementById(id);
+      const els = {
+        metrics: $("metrics"), navItems: document.querySelectorAll(".nav-item"), panels: document.querySelectorAll(".panel"),
+        barcodeInput: $("barcodeInput"), personInput: $("personInput"), noteInput: $("noteInput"), scanForm: $("scanForm"), clearButton: $("clearButton"), itemPreview: $("itemPreview"), message: $("message"), scanMode: $("scanMode"),
+        inventoryRows: $("inventoryRows"), logRows: $("logRows"), inventorySearch: $("inventorySearch"), addItemForm: $("addItemForm"), addType: $("addType"), addBarcode: $("addBarcode"), addName: $("addName"), removeItemForm: $("removeItemForm"), removeBarcode: $("removeBarcode"), removeReason: $("removeReason"), manageMessage: $("manageMessage"),
+        labelFilter: $("labelFilter"), nextLabelType: $("nextLabelType"), labelMode: $("labelMode"), labelSheet: $("labelSheet")
+      };
+
+      bind();
+      render();
+
+      function seedItems() {
+        return [
+          ...makeItems("FD", "Flash Disk", 148),
+          ...makeItems("SR", "Ses Kayit Cihazi", 102),
+          ...makeItems("KM", "Kamera", 2)
+        ];
+      }
+
+      function makeItems(prefix, type, count) {
+        return Array.from({ length: count }, (_, index) => {
+          const number = index + 1;
+          return { barcode: prefix + String(number).padStart(3, "0"), type, name: `${type} ${number}`, status: "IN", holder: "" };
+        });
+      }
+
+      function bind() {
+        els.navItems.forEach((button) => button.addEventListener("click", () => switchView(button.dataset.view)));
+        els.scanForm.addEventListener("submit", scan);
+        els.clearButton.addEventListener("click", () => { els.barcodeInput.value = ""; els.personInput.value = ""; els.noteInput.value = ""; updatePreview(); });
+        els.barcodeInput.addEventListener("input", updatePreview);
+        els.inventorySearch.addEventListener("input", renderInventory);
+        els.addType.addEventListener("change", updateNextBarcode);
+        els.addItemForm.addEventListener("submit", addItem);
+        els.removeItemForm.addEventListener("submit", removeItem);
+        els.labelFilter.addEventListener("change", renderLabels);
+        els.nextLabelType.addEventListener("change", renderLabels);
+        els.labelMode.addEventListener("change", renderLabels);
+      }
+
+      function switchView(view) {
+        els.navItems.forEach((button) => button.classList.toggle("active", button.dataset.view === view));
+        els.panels.forEach((panel) => panel.classList.toggle("active", panel.dataset.panel === view));
+        if (view === "scan") setTimeout(() => els.barcodeInput.focus(), 0);
+      }
+
+      function scan(event) {
+        event.preventDefault();
+        const item = state.items.find((entry) => entry.barcode === normalize(els.barcodeInput.value));
+        if (!item) return show(els.message, "error", "Barkod bulunamadi.");
+        if (item.status === "IN" && !els.personInput.value.trim()) return show(els.message, "error", "Cikis icin teslim alan girin.");
+        const action = item.status === "OUT" ? "IN" : "OUT";
+        item.status = action;
+        item.holder = action === "OUT" ? els.personInput.value.trim() : "";
+        state.movements.unshift({ time: new Date(), barcode: item.barcode, itemName: item.name, action, person: els.personInput.value || "Hazirlik Programi", note: els.noteInput.value });
+        els.barcodeInput.value = "";
+        els.noteInput.value = "";
+        show(els.message, "success", "Islem demo kaydina eklendi.");
+        render();
+      }
+
+      function addItem(event) {
+        event.preventDefault();
+        const type = els.addType.value;
+        const setting = typeSettings[type];
+        const number = state.nextNumbers[setting.prefix];
+        const barcode = setting.prefix + String(number).padStart(3, "0");
+        const name = els.addName.value.trim() || `${type} ${number}`;
+        state.items.push({ barcode, type, name, status: "IN", holder: "" });
+        state.nextNumbers[setting.prefix] += 1;
+        state.movements.unshift({ time: new Date(), barcode, itemName: name, action: "ADD", person: "Hazirlik Programi", note: "Envantere eklendi" });
+        els.addName.value = "";
+        show(els.manageMessage, "success", `${barcode} eklendi.`);
+        render();
+      }
+
+      function removeItem(event) {
+        event.preventDefault();
+        if (!els.removeReason.value.trim()) return show(els.manageMessage, "error", "Gerekce girin.");
+        state.items = state.items.filter((item) => item.barcode !== els.removeBarcode.value);
+        show(els.manageMessage, "success", "Urun listeden cikarildi.");
+        render();
+      }
+
+      function render() { renderMetrics(); renderInventory(); renderLogs(); renderRemoveOptions(); renderLabels(); updateNextBarcode(); updatePreview(); }
+      function renderMetrics() {
+        const inStock = state.items.filter((item) => item.status === "IN").length;
+        els.metrics.innerHTML = [["Toplam urun", state.items.length], ["Stokta", inStock], ["Disarida", state.items.length - inStock], ["Urun turu", 3]].map(([label, value]) => `<article class="metric"><span>${label}</span><strong>${value}</strong></article>`).join("");
+      }
+      function renderInventory() {
+        const query = normalize(els.inventorySearch.value);
+        els.inventoryRows.innerHTML = state.items.filter((item) => !query || normalize(`${item.barcode} ${item.type} ${item.name}`).includes(query)).map((item) => `<tr><td><strong>${item.barcode}</strong></td><td>${item.type}</td><td>${item.name}</td><td>${badge(item.status)}</td><td>${item.holder || "Hazir"}</td></tr>`).join("");
+      }
+      function renderLogs() {
+        els.logRows.innerHTML = state.movements.map((log) => `<tr><td>${log.time.toLocaleString("tr-TR")}</td><td><strong>${log.barcode}</strong></td><td>${log.itemName}</td><td>${badge(log.action)}</td><td>${log.person}</td><td>${log.note || ""}</td></tr>`).join("") || `<tr><td colspan="6">Henuz hareket yok.</td></tr>`;
+      }
+      function renderRemoveOptions() { els.removeBarcode.innerHTML = state.items.map((item) => `<option value="${item.barcode}">${item.barcode} - ${item.name}</option>`).join(""); }
+      function renderLabels() {
+        const filter = els.labelFilter.value;
+        const nextOnly = filter === "next";
+        els.nextLabelType.hidden = !nextOnly;
+        if (els.labelMode.value === "mini" && nextOnly && els.nextLabelType.value !== "Flash Disk") els.nextLabelType.value = "Flash Disk";
+        if (els.labelMode.value === "mini" && !nextOnly && filter !== "Flash Disk") els.labelFilter.value = "Flash Disk";
+        const items = nextOnly ? [nextLabelItem()] : state.items.filter((item) => els.labelFilter.value === "all" || item.type === els.labelFilter.value);
+        const mini = els.labelMode.value === "mini";
+        els.labelSheet.classList.toggle("mini", mini);
+        els.labelSheet.innerHTML = items.map((item) => `<article class="barcode-label"><div><strong>${item.barcode}</strong><span>${mini ? "BILGI HZP" : item.type}</span></div><div class="bars"></div><p>${mini ? item.barcode : item.name}</p></article>`).join("");
+      }
+      function nextLabelItem() {
+        const type = els.nextLabelType.value;
+        const setting = typeSettings[type];
+        const number = state.nextNumbers[setting.prefix];
+        return { barcode: setting.prefix + String(number).padStart(3, "0"), type, name: `${type} ${number}` };
+      }
+      function updateNextBarcode() {
+        const setting = typeSettings[els.addType.value];
+        els.addBarcode.value = setting.prefix + String(state.nextNumbers[setting.prefix]).padStart(3, "0");
+      }
+      function updatePreview() {
+        const barcode = normalize(els.barcodeInput.value);
+        const item = state.items.find((entry) => entry.barcode === barcode);
+        els.scanMode.textContent = !barcode ? "Hazir" : item ? (item.status === "OUT" ? "Giris yapilacak" : "Cikis yapilacak") : "Bulunamadi";
+        els.itemPreview.className = `item-preview ${barcode ? (item ? "ready" : "error") : ""}`;
+        els.itemPreview.textContent = !barcode ? "Urun bekleniyor" : item ? `${item.barcode} | ${item.type} | ${item.name}` : "Bu barkod bulunamadi";
+      }
+      function badge(status) {
+        const labels = { IN: "Stokta", OUT: "Disarida", ADD: "Eklendi" };
+        return `<span class="badge ${status === "OUT" ? "out" : "in"}">${labels[status] || status}</span>`;
+      }
+      function normalize(value) { return String(value || "").trim().toUpperCase(); }
+      function show(el, type, text) { el.className = `message ${type}`; el.textContent = text; }
+    </script>
+  </body>
+</html>

@@ -53,17 +53,8 @@ function setupInventoryWorkbook() {
     settings.getRange(2, 1, TYPES.length, 3).setValues(TYPES.map((entry) => [entry.type, entry.prefix, entry.nextNumber]));
   }
 
-  if (items.getLastRow() < 2) {
-    const now = new Date();
-    const rows = [];
-    TYPES.forEach((entry) => {
-      for (let i = 1; i <= entry.startCount; i += 1) {
-        const barcode = entry.prefix + String(i).padStart(3, "0");
-        rows.push([barcode, entry.type, `${entry.type} ${i}`, "IN", "", true, "", now, now]);
-      }
-    });
-    items.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
-  }
+  ensureBaselineInventory_(items);
+  ensureMinimumNextNumbers_(settings);
 }
 
 function getState() {
@@ -206,6 +197,42 @@ function setNextNumber_(prefix, nextNumber) {
   const rows = sheet.getDataRange().getValues();
   const rowIndex = rows.findIndex((row, index) => index > 0 && row[1] === prefix);
   if (rowIndex !== -1) sheet.getRange(rowIndex + 1, 3).setValue(nextNumber);
+}
+
+function ensureBaselineInventory_(itemsSheet) {
+  const values = itemsSheet.getDataRange().getValues().slice(1);
+  const existing = new Set(values.map((row) => normalize_(row[0])));
+  const now = new Date();
+  const rows = [];
+
+  TYPES.forEach((entry) => {
+    for (let i = 1; i <= entry.startCount; i += 1) {
+      const barcode = entry.prefix + String(i).padStart(3, "0");
+      if (!existing.has(barcode)) {
+        rows.push([barcode, entry.type, `${entry.type} ${i}`, "IN", "", true, "", now, now]);
+      }
+    }
+  });
+
+  if (rows.length) {
+    itemsSheet.getRange(itemsSheet.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
+  }
+}
+
+function ensureMinimumNextNumbers_(settingsSheet) {
+  const rows = settingsSheet.getDataRange().getValues();
+  TYPES.forEach((entry) => {
+    const rowIndex = rows.findIndex((row, index) => index > 0 && row[1] === entry.prefix);
+    const minimumNextNumber = entry.startCount + 1;
+    if (rowIndex === -1) {
+      settingsSheet.appendRow([entry.type, entry.prefix, minimumNextNumber]);
+      return;
+    }
+    const currentNextNumber = Number(rows[rowIndex][2]);
+    if (!currentNextNumber || currentNextNumber < minimumNextNumber) {
+      settingsSheet.getRange(rowIndex + 1, 3).setValue(minimumNextNumber);
+    }
+  });
 }
 
 function appendMovement_(barcode, itemName, action, person, note) {

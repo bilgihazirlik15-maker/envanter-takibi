@@ -31,6 +31,7 @@ const els = {
   removeReason: document.getElementById("removeReason"),
   manageMessage: document.getElementById("manageMessage"),
   labelFilter: document.getElementById("labelFilter"),
+  nextLabelType: document.getElementById("nextLabelType"),
   labelMode: document.getElementById("labelMode"),
   labelSheet: document.getElementById("labelSheet"),
   printLabels: document.getElementById("printLabels"),
@@ -64,6 +65,7 @@ function bindEvents() {
   els.removeItemForm.addEventListener("submit", handleRemoveItem);
   els.addType.addEventListener("change", updateNextBarcode);
   els.labelFilter.addEventListener("change", renderLabels);
+  els.nextLabelType.addEventListener("change", renderLabels);
   els.labelMode.addEventListener("change", handleLabelModeChange);
   els.printLabels.addEventListener("click", () => window.print());
 }
@@ -191,9 +193,16 @@ function renderRemoveOptions() {
 
 function renderLabels() {
   const isMini = els.labelMode.value === "mini";
-  if (isMini && els.labelFilter.value !== "Flash Disk") els.labelFilter.value = "Flash Disk";
+  if (isMini && els.labelFilter.value === "next" && els.nextLabelType.value !== "Flash Disk") {
+    els.nextLabelType.value = "Flash Disk";
+  } else if (isMini && els.labelFilter.value !== "Flash Disk" && els.labelFilter.value !== "next") {
+    els.labelFilter.value = "Flash Disk";
+  }
   const filter = els.labelFilter.value;
-  const items = state.items.filter((item) => filter === "all" || item.type === filter);
+  const items = filter === "next"
+    ? [nextLabelItem()]
+    : state.items.filter((item) => filter === "all" || item.type === filter);
+  els.nextLabelType.hidden = filter !== "next";
   els.labelSheet.classList.toggle("mini", isMini);
   els.labelSheet.innerHTML = items.map((item) => `
     <article class="barcode-label">
@@ -209,6 +218,14 @@ function renderLabels() {
 function handleLabelModeChange() {
   if (els.labelMode.value === "mini") els.labelFilter.value = "Flash Disk";
   renderLabels();
+}
+
+function nextLabelItem() {
+  const type = els.nextLabelType.value;
+  const setting = typeSettings[type];
+  const nextNumber = state.nextNumbers[setting.prefix] || 1;
+  const barcode = setting.prefix + String(nextNumber).padStart(3, "0");
+  return { barcode, type, name: `${type} ${nextNumber}` };
 }
 
 function updateNextBarcode() {
