@@ -58,10 +58,15 @@
       .scan-grid, .manage-grid { display: grid; grid-template-columns: minmax(320px, 1.15fr) minmax(280px, 0.85fr); gap: 16px; padding: 18px; }
       .scan-primary, .scan-side, .manage-card { display: grid; align-content: start; gap: 10px; border: 1px solid var(--line); border-radius: 8px; padding: 16px; background: #fbfcfc; }
       .summary-wrap { padding: 18px; overflow: auto; }
-      .summary-table { max-width: 760px; min-width: 560px; border: 1px solid #111; }
-      .summary-table th, .summary-table td { border: 1px solid #111; text-align: center; }
-      .summary-table th { position: static; background: #fff200; color: #000; font-weight: 700; text-transform: none; }
-      .summary-table td:first-child { text-align: left; }
+      .summary-table { max-width: 760px; min-width: 560px; border-collapse: separate; border-spacing: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+      .summary-table th, .summary-table td { border-bottom: 1px solid var(--line); text-align: right; }
+      .summary-table th { position: static; background: #eef3f1; color: #3d4a45; font-weight: 650; text-transform: none; }
+      .summary-table tr:last-child td { border-bottom: 0; }
+      .summary-table tbody tr:nth-child(even) { background: #fbfcfc; }
+      .summary-table td:first-child { text-align: left; font-weight: 600; }
+      .summary-table .summary-in { color: var(--green); font-weight: 650; }
+      .summary-table .summary-out { color: var(--amber); font-weight: 650; }
+      .summary-table .summary-total { color: var(--ink); font-weight: 650; }
       label { color: var(--muted); font-size: 13px; font-weight: 520; }
       input, select { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 12px; background: #fff; color: var(--ink); outline: none; }
       input:focus, select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(36, 95, 159, 0.13); }
@@ -120,11 +125,11 @@
         </div>
         <nav class="nav" aria-label="Bolumler">
           <button class="nav-item active" data-view="scan">Giris / Cikis</button>
-          <button class="nav-item" data-view="summary">Summary</button>
           <button class="nav-item" data-view="inventory">Envanter</button>
           <button class="nav-item" data-view="manage">Urun Yonetimi</button>
           <button class="nav-item" data-view="labels">Barkod Yazdir</button>
           <button class="nav-item" data-view="logs">Hareketler</button>
+          <button class="nav-item" data-view="summary">Summary</button>
         </nav>
       </aside>
       <main class="main">
@@ -429,7 +434,7 @@
           const items = state.items.filter((item) => item.type === type);
           const inStock = items.filter((item) => item.status === "IN").length;
           const out = items.filter((item) => item.status === "OUT").length;
-          return `<tr><td>${escapeHtml(label)}</td><td>${items.length}</td><td>${inStock}</td><td>${out}</td></tr>`;
+          return `<tr><td>${escapeHtml(label)}</td><td class="summary-total">${items.length}</td><td class="summary-in">${inStock}</td><td class="summary-out">${out}</td></tr>`;
         }).join("");
       }
       function handleInventoryFilterChange(event) {

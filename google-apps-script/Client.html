@@ -319,9 +319,9 @@ function renderSummary() {
     return `
       <tr>
         <td>${escapeHtml(label)}</td>
-        <td>${items.length}</td>
-        <td>${inStock}</td>
-        <td>${out}</td>
+        <td class="summary-total">${items.length}</td>
+        <td class="summary-in">${inStock}</td>
+        <td class="summary-out">${out}</td>
       </tr>`;
   }).join("");
 }
