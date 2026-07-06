@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <base target="_top" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>İstanbul Bilgi Üniversitesi | Envanter Takibi</title>
+    <?!= include("Styles"); ?>
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">BİLGİ</div>
+          <div>
+            <h1>Envanter Takibi</h1>
+            <p>Hazırlık Programı</p>
+          </div>
+        </div>
+        <nav class="nav" aria-label="Bölümler">
+          <button class="nav-item active" data-view="scan">Giriş / Çıkış</button>
+          <button class="nav-item" data-view="inventory">Envanter</button>
+          <button class="nav-item" data-view="manage">Ürün Yönetimi</button>
+          <button class="nav-item" data-view="labels">Barkod Yazdır</button>
+          <button class="nav-item" data-view="logs">Hareketler</button>
+        </nav>
+      </aside>
+
+      <main class="main">
+        <header class="page-header">
+          <p>İstanbul Bilgi Üniversitesi</p>
+          <h2>Hazırlık Programı, Envanter Takibi</h2>
+        </header>
+
+        <section class="metrics" id="metrics"></section>
+
+        <section class="panel active" data-panel="scan">
+          <div class="panel-header">
+            <div>
+              <h3>Barkod ile giriş / çıkış</h3>
+              <p>Barkod okuyucu alanı otomatik doldurur. Enter ile işlem Google Sheet'e kaydedilir.</p>
+            </div>
+            <span class="status-pill" id="scanMode">Hazır</span>
+          </div>
+
+          <form class="scan-grid" id="scanForm">
+            <div class="scan-primary">
+              <label for="barcodeInput">Barkod</label>
+              <input id="barcodeInput" class="barcode-input" type="text" placeholder="Barkodu okutun" autocomplete="off" autofocus />
+              <div class="item-preview" id="itemPreview">Ürün bekleniyor</div>
+            </div>
+
+            <div class="scan-side">
+              <label for="personInput">Teslim alan / iade eden</label>
+              <input id="personInput" type="text" placeholder="Ad soyad veya birim" autocomplete="off" />
+              <label for="noteInput">Not</label>
+              <input id="noteInput" type="text" placeholder="İsteğe bağlı" autocomplete="off" />
+              <div class="actions">
+                <button class="primary" type="submit">Kaydet</button>
+                <button class="secondary" type="button" id="clearButton">Temizle</button>
+              </div>
+            </div>
+          </form>
+          <div class="message" id="message" role="status" aria-live="polite"></div>
+        </section>
+
+        <section class="panel" data-panel="inventory">
+          <div class="panel-header">
+            <div>
+              <h3>Envanter</h3>
+              <p>Aktif ürünler tek Google Sheet üzerinden okunur.</p>
+            </div>
+            <input class="table-search" id="inventorySearch" type="search" placeholder="Ürün ara" />
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Barkod</th>
+                  <th>Tür</th>
+                  <th>Ürün</th>
+                  <th>Durum</th>
+                  <th>Kimde</th>
+                </tr>
+              </thead>
+              <tbody id="inventoryRows"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel" data-panel="manage">
+          <div class="panel-header">
+            <div>
+              <h3>Ürün yönetimi</h3>
+              <p>Yeni ürün ekleyin veya gerekçeyle envanterden çıkarın.</p>
+            </div>
+          </div>
+          <div class="manage-grid">
+            <form class="manage-card" id="addItemForm">
+              <h4>Envantere ekle</h4>
+              <label for="addType">Tür</label>
+              <select id="addType">
+                <option>Flash Disk</option>
+                <option>Ses Kayıt Cihazı</option>
+                <option>Kamera</option>
+              </select>
+              <label for="addBarcode">Sıradaki barkod</label>
+              <input id="addBarcode" type="text" readonly />
+              <label for="addName">Ürün adı</label>
+              <input id="addName" type="text" placeholder="Boş bırakılırsa otomatik ad verilir" autocomplete="off" />
+              <button class="primary" type="submit">Ürünü ekle</button>
+            </form>
+
+            <form class="manage-card" id="removeItemForm">
+              <h4>Envanterden çıkar</h4>
+              <label for="removeBarcode">Ürün</label>
+              <select id="removeBarcode"></select>
+              <label for="removeReason">Gerekçe</label>
+              <input id="removeReason" type="text" placeholder="Örn. arızalı, kayıp, kullanım dışı" autocomplete="off" />
+              <button class="danger" type="submit">Envanterden çıkar</button>
+            </form>
+          </div>
+          <div class="message" id="manageMessage" role="status" aria-live="polite"></div>
+        </section>
+
+        <section class="panel" data-panel="labels">
+          <div class="panel-header">
+            <div>
+              <h3>Barkod yazdır</h3>
+              <p>Etiketleri kategoriye göre filtreleyip yazdırabilirsiniz.</p>
+            </div>
+            <div class="print-controls">
+              <select id="labelFilter" aria-label="Barkod etiketi filtresi">
+                <option value="all">Tüm ürünler</option>
+                <option value="Flash Disk">Flash Disk</option>
+                <option value="Ses Kayıt Cihazı">Ses Kayıt Cihazı</option>
+                <option value="Kamera">Kamera</option>
+              </select>
+              <select id="labelMode" aria-label="Etiket boyutu">
+                <option value="standard">Standart Etiket</option>
+                <option value="mini">Flash Disk Mini Etiket</option>
+              </select>
+              <button class="primary" type="button" id="printLabels">Yazdır</button>
+            </div>
+          </div>
+          <div class="label-sheet" id="labelSheet"></div>
+        </section>
+
+        <section class="panel" data-panel="logs">
+          <div class="panel-header">
+            <div>
+              <h3>Hareketler</h3>
+              <p>Son giriş ve çıkış kayıtları.</p>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Zaman</th>
+                  <th>Barkod</th>
+                  <th>Ürün</th>
+                  <th>İşlem</th>
+                  <th>Kişi / Birim</th>
+                  <th>Not</th>
+                </tr>
+              </thead>
+              <tbody id="logRows"></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+    <?!= include("Client"); ?>
+  </body>
+</html>
