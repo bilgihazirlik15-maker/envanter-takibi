@@ -86,10 +86,24 @@
                 </tr>
                 <tr class="filter-row">
                   <th><input data-inventory-filter="barcode" type="search" placeholder="Barkod" /></th>
-                  <th><input data-inventory-filter="type" type="search" placeholder="Tür" /></th>
-                  <th><input data-inventory-filter="name" type="search" placeholder="Ürün" /></th>
-                  <th><input data-inventory-filter="status" type="search" placeholder="Durum" /></th>
-                  <th><input data-inventory-filter="holder" type="search" placeholder="Kimde" /></th>
+                  <th>
+                    <select data-inventory-filter="type">
+                      <option value="">Tümü</option>
+                    </select>
+                  </th>
+                  <th>
+                    <select data-inventory-filter="name">
+                      <option value="">Tümü</option>
+                    </select>
+                  </th>
+                  <th>
+                    <select data-inventory-filter="status">
+                      <option value="">Tümü</option>
+                      <option value="Stokta">Stokta</option>
+                      <option value="Dışarıda">Dışarıda</option>
+                    </select>
+                  </th>
+                  <th><input data-inventory-filter="holder" type="search" list="personOptions" placeholder="Kimde" /></th>
                   <th><input data-inventory-filter="updatedAt" type="search" placeholder="Tarih / saat" /></th>
                 </tr>
               </thead>

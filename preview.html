@@ -75,6 +75,7 @@
       th { position: sticky; top: 0; background: #eef3f1; color: #3d4a45; font-size: 12px; font-weight: 560; text-transform: uppercase; }
       .filter-row th { top: 41px; padding: 8px; background: #f8faf9; text-transform: none; }
       .filter-row input { min-width: 110px; padding: 8px 9px; border-radius: 6px; font-size: 12px; }
+      .filter-row select { min-width: 126px; padding: 8px 9px; border-radius: 6px; font-size: 12px; }
       .badge { display: inline-flex; min-width: 84px; min-height: 28px; align-items: center; justify-content: center; border-radius: 999px; padding: 4px 10px; font-size: 12px; font-weight: 560; }
       .badge.in { background: #dff3e8; color: var(--green); }
       .badge.out { background: #fff1d6; color: var(--amber); }
@@ -135,7 +136,7 @@
 
         <section class="panel" data-panel="inventory">
           <div class="panel-header"><div><h3>Envanter</h3><p>148 flash disk, 102 ses kayit cihazi ve 2 kamera.</p></div><input id="inventorySearch" type="search" placeholder="Urun ara" /></div>
-          <div class="table-wrap"><table><thead><tr><th>Barkod</th><th>Tur</th><th>Urun</th><th>Durum</th><th>Kimde</th><th>Son islem tarihi</th></tr><tr class="filter-row"><th><input data-inventory-filter="barcode" type="search" placeholder="Barkod" /></th><th><input data-inventory-filter="type" type="search" placeholder="Tur" /></th><th><input data-inventory-filter="name" type="search" placeholder="Urun" /></th><th><input data-inventory-filter="status" type="search" placeholder="Durum" /></th><th><input data-inventory-filter="holder" type="search" placeholder="Kimde" /></th><th><input data-inventory-filter="updatedAt" type="search" placeholder="Tarih / saat" /></th></tr></thead><tbody id="inventoryRows"></tbody></table></div>
+          <div class="table-wrap"><table><thead><tr><th>Barkod</th><th>Tur</th><th>Urun</th><th>Durum</th><th>Kimde</th><th>Son islem tarihi</th></tr><tr class="filter-row"><th><input data-inventory-filter="barcode" type="search" placeholder="Barkod" /></th><th><select data-inventory-filter="type"><option value="">Tumu</option></select></th><th><select data-inventory-filter="name"><option value="">Tumu</option></select></th><th><select data-inventory-filter="status"><option value="">Tumu</option><option value="Stokta">Stokta</option><option value="Disarida">Disarida</option></select></th><th><input data-inventory-filter="holder" type="search" list="personOptions" placeholder="Kimde" /></th><th><input data-inventory-filter="updatedAt" type="search" placeholder="Tarih / saat" /></th></tr></thead><tbody id="inventoryRows"></tbody></table></div>
         </section>
 
         <section class="panel" data-panel="manage">
@@ -311,7 +312,7 @@
       const els = {
         metrics: $("metrics"), navItems: document.querySelectorAll(".nav-item"), panels: document.querySelectorAll(".panel"),
         barcodeInput: $("barcodeInput"), personInput: $("personInput"), personOptions: $("personOptions"), noteInput: $("noteInput"), scanForm: $("scanForm"), clearButton: $("clearButton"), itemPreview: $("itemPreview"), message: $("message"), scanMode: $("scanMode"),
-        inventoryRows: $("inventoryRows"), logRows: $("logRows"), inventorySearch: $("inventorySearch"), inventoryFilters: document.querySelectorAll("[data-inventory-filter]"), addItemForm: $("addItemForm"), addType: $("addType"), addBarcode: $("addBarcode"), addName: $("addName"), removeItemForm: $("removeItemForm"), removeBarcode: $("removeBarcode"), removeReason: $("removeReason"), manageMessage: $("manageMessage"),
+        inventoryRows: $("inventoryRows"), logRows: $("logRows"), inventorySearch: $("inventorySearch"), inventoryFilters: document.querySelectorAll("[data-inventory-filter]"), inventoryTypeFilter: document.querySelector('[data-inventory-filter="type"]'), inventoryNameFilter: document.querySelector('[data-inventory-filter="name"]'), addItemForm: $("addItemForm"), addType: $("addType"), addBarcode: $("addBarcode"), addName: $("addName"), removeItemForm: $("removeItemForm"), removeBarcode: $("removeBarcode"), removeReason: $("removeReason"), manageMessage: $("manageMessage"),
         labelFilter: $("labelFilter"), nextLabelType: $("nextLabelType"), labelMode: $("labelMode"), labelSheet: $("labelSheet")
       };
 
@@ -340,7 +341,10 @@
         els.clearButton.addEventListener("click", () => { els.barcodeInput.value = ""; els.personInput.value = ""; els.noteInput.value = ""; updatePreview(); });
         els.barcodeInput.addEventListener("input", updatePreview);
         els.inventorySearch.addEventListener("input", renderInventory);
-        els.inventoryFilters.forEach((input) => input.addEventListener("input", renderInventory));
+        els.inventoryFilters.forEach((input) => {
+          input.addEventListener("input", handleInventoryFilterChange);
+          input.addEventListener("change", handleInventoryFilterChange);
+        });
         els.addType.addEventListener("change", updateNextBarcode);
         els.addItemForm.addEventListener("submit", addItem);
         els.removeItemForm.addEventListener("submit", removeItem);
@@ -398,7 +402,11 @@
         render();
       }
 
-      function render() { renderMetrics(); renderInventory(); renderLogs(); renderRemoveOptions(); renderLabels(); updateNextBarcode(); updatePreview(); }
+      function render() { renderMetrics(); renderInventoryFilterOptions(); renderInventory(); renderLogs(); renderRemoveOptions(); renderLabels(); updateNextBarcode(); updatePreview(); }
+      function handleInventoryFilterChange(event) {
+        if (event.currentTarget === els.inventoryTypeFilter) renderInventoryFilterOptions();
+        renderInventory();
+      }
       function renderMetrics() {
         const inStock = state.items.filter((item) => item.status === "IN").length;
         els.metrics.innerHTML = [["Toplam urun", state.items.length], ["Stokta", inStock], ["Disarida", state.items.length - inStock], ["Urun turu", 3]].map(([label, value]) => `<article class="metric"><span>${label}</span><strong>${value}</strong></article>`).join("");
@@ -407,6 +415,25 @@
         const query = normalize(els.inventorySearch.value);
         const filters = getInventoryFilters();
         els.inventoryRows.innerHTML = state.items.filter((item) => inventoryMatches(item, query, filters)).map((item) => `<tr><td><strong>${item.barcode}</strong></td><td>${item.type}</td><td>${item.name}</td><td>${badge(item.status)}</td><td>${item.holder || "Hazir"}</td><td>${formatDate(item.updatedAt)}</td></tr>`).join("") || `<tr><td colspan="6">Kayit bulunamadi.</td></tr>`;
+      }
+      function renderInventoryFilterOptions() {
+        const selectedType = els.inventoryTypeFilter.value;
+        const selectedName = els.inventoryNameFilter.value;
+        const itemTypes = new Set(state.items.map((item) => item.type));
+        const types = Object.keys(typeSettings).filter((type) => itemTypes.has(type));
+        const names = state.items
+          .filter((item) => !selectedType || item.type === selectedType)
+          .map((item) => item.name)
+          .sort((a, b) => a.localeCompare(b, "tr", { numeric: true }));
+        els.inventoryTypeFilter.innerHTML = optionHtml(["", ...types], selectedType, "Tumu");
+        els.inventoryNameFilter.innerHTML = optionHtml(["", ...names], names.includes(selectedName) ? selectedName : "", "Tumu");
+      }
+      function optionHtml(values, selectedValue, emptyLabel) {
+        return values.map((value) => {
+          const label = value || emptyLabel;
+          const selected = value === selectedValue ? " selected" : "";
+          return `<option value="${escapeHtml(value)}"${selected}>${escapeHtml(label)}</option>`;
+        }).join("");
       }
       function getInventoryFilters() {
         return Array.from(els.inventoryFilters).reduce((acc, input) => {
