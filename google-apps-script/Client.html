@@ -452,15 +452,16 @@ function renderRemoveOptions() {
 
 function renderLabels() {
   const isMini = els.labelMode.value === "mini";
-  if (isMini && els.labelFilter.value === "next" && els.nextLabelType.value !== "Flash Disk") {
-    els.nextLabelType.value = "Flash Disk";
-  } else if (isMini && els.labelFilter.value !== "Flash Disk" && els.labelFilter.value !== "next") {
+  if (isMini && els.labelFilter.value !== "Flash Disk" && els.labelFilter.value !== "next") {
     els.labelFilter.value = "Flash Disk";
   }
   const filter = els.labelFilter.value;
   const items = filter === "next"
     ? [nextLabelItem()]
-    : state.items.filter((item) => filter === "all" || item.type === filter);
+    : state.items
+      .filter((item) => filter === "all" || item.type === filter)
+      .slice()
+      .sort(compareBarcode);
   els.nextLabelType.hidden = filter !== "next";
   els.labelSheet.classList.toggle("mini", isMini);
   els.labelSheet.innerHTML = items.map((item) => `
@@ -475,7 +476,7 @@ function renderLabels() {
 }
 
 function handleLabelModeChange() {
-  if (els.labelMode.value === "mini") els.labelFilter.value = "Flash Disk";
+  if (els.labelMode.value === "mini" && els.labelFilter.value !== "next") els.labelFilter.value = "Flash Disk";
   renderLabels();
 }
 
@@ -499,6 +500,17 @@ function nextLabelItem() {
   const nextNumber = state.nextNumbers[setting.prefix] || 1;
   const barcode = setting.prefix + String(nextNumber).padStart(3, "0");
   return { barcode, type, name: `${type} ${nextNumber}` };
+}
+
+function compareBarcode(a, b) {
+  const left = barcodeParts(a.barcode);
+  const right = barcodeParts(b.barcode);
+  return left.prefix.localeCompare(right.prefix, "tr") || left.number - right.number || a.barcode.localeCompare(b.barcode, "tr");
+}
+
+function barcodeParts(value) {
+  const match = String(value || "").match(/^([A-Za-z]+)(\d+)$/);
+  return match ? { prefix: match[1], number: Number(match[2]) } : { prefix: String(value || ""), number: 0 };
 }
 
 function updateNextBarcode() {

@@ -539,9 +539,8 @@
         const filter = els.labelFilter.value;
         const nextOnly = filter === "next";
         els.nextLabelType.hidden = !nextOnly;
-        if (els.labelMode.value === "mini" && nextOnly && els.nextLabelType.value !== "Flash Disk") els.nextLabelType.value = "Flash Disk";
         if (els.labelMode.value === "mini" && !nextOnly && filter !== "Flash Disk") els.labelFilter.value = "Flash Disk";
-        const items = nextOnly ? [nextLabelItem()] : state.items.filter((item) => els.labelFilter.value === "all" || item.type === els.labelFilter.value);
+        const items = nextOnly ? [nextLabelItem()] : state.items.filter((item) => els.labelFilter.value === "all" || item.type === els.labelFilter.value).slice().sort(compareBarcode);
         const mini = els.labelMode.value === "mini";
         els.labelSheet.classList.toggle("mini", mini);
         els.labelSheet.innerHTML = items.map((item) => `<article class="barcode-label"><div><strong>${item.barcode}</strong><span>${mini ? "BILGI HZP" : item.type}</span></div><div class="bars"></div><p>${mini ? item.barcode : item.name}</p></article>`).join("");
@@ -551,6 +550,15 @@
         const setting = typeSettings[type];
         const number = state.nextNumbers[setting.prefix];
         return { barcode: setting.prefix + String(number).padStart(3, "0"), type, name: `${type} ${number}` };
+      }
+      function compareBarcode(a, b) {
+        const left = barcodeParts(a.barcode);
+        const right = barcodeParts(b.barcode);
+        return left.prefix.localeCompare(right.prefix, "tr") || left.number - right.number || a.barcode.localeCompare(b.barcode, "tr");
+      }
+      function barcodeParts(value) {
+        const match = String(value || "").match(/^([A-Za-z]+)(\d+)$/);
+        return match ? { prefix: match[1], number: Number(match[2]) } : { prefix: String(value || ""), number: 0 };
       }
       function updateNextBarcode() {
         const setting = typeSettings[els.addType.value];
