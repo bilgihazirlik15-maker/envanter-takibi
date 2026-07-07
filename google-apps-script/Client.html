@@ -332,16 +332,38 @@ function handleInventoryFilterChange(event) {
 }
 
 function renderMetrics() {
-  const total = state.items.length;
-  const inStock = state.items.filter((item) => item.status === "IN").length;
-  const out = total - inStock;
   const categories = new Set(state.items.map((item) => item.type)).size;
+  const categoryCards = [
+    { title: "Flash Disk", type: "Flash Disk", tone: "flash" },
+    { title: "Ses Kayıt Cihazı", type: "Ses Kayıt Cihazı", tone: "recorder" },
+    { title: "Kamera", type: "Kamera", tone: "camera" },
+  ].map(metricCategoryCard);
+
   els.metrics.innerHTML = [
-    ["Toplam ürün", total],
-    ["Stokta", inStock],
-    ["Dışarıda", out],
-    ["Ürün türü", categories],
-  ].map(([label, value]) => `<article class="metric"><span>${label}</span><strong>${value}</strong></article>`).join("");
+    ...categoryCards,
+    `<article class="metric metric-simple metric-type">
+      <span>Ürün türü</span>
+      <strong>${categories}</strong>
+    </article>`,
+  ].join("");
+}
+
+function metricCategoryCard({ title, type, tone }) {
+  const items = state.items.filter((item) => item.type === type);
+  const inStock = items.filter((item) => item.status === "IN").length;
+  const out = items.filter((item) => item.status === "OUT").length;
+
+  return `
+    <article class="metric metric-category metric-${tone}">
+      <div class="metric-top">
+        <span>${escapeHtml(title)}</span>
+        <strong>${items.length}</strong>
+      </div>
+      <div class="metric-split">
+        <div><small>Elimizde</small><b>${inStock}</b></div>
+        <div><small>Dışarıda</small><b>${out}</b></div>
+      </div>
+    </article>`;
 }
 
 function renderInventoryFilterOptions() {
