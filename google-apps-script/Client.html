@@ -1,5 +1,5 @@
 <script>
-const state = { items: [], movements: [], nextNumbers: {} };
+const state = { items: [], removedItems: [], movements: [], nextNumbers: {} };
 
 const typeSettings = {
   "Flash Disk": { prefix: "FD" },
@@ -175,6 +175,7 @@ const els = {
   scanMode: document.getElementById("scanMode"),
   inventoryRows: document.getElementById("inventoryRows"),
   logRows: document.getElementById("logRows"),
+  removedRows: document.getElementById("removedRows"),
   inventorySearch: document.getElementById("inventorySearch"),
   inventoryFilters: document.querySelectorAll("[data-inventory-filter]"),
   inventoryTypeFilter: document.querySelector('[data-inventory-filter="type"]'),
@@ -304,6 +305,7 @@ function render() {
   renderSummary();
   renderInventoryFilterOptions();
   renderInventory();
+  renderRemovedItems();
   renderLogs();
   renderRemoveOptions();
   renderLabels();
@@ -475,6 +477,20 @@ function renderLabels() {
 function handleLabelModeChange() {
   if (els.labelMode.value === "mini") els.labelFilter.value = "Flash Disk";
   renderLabels();
+}
+
+function renderRemovedItems() {
+  const removedItems = state.removedItems || [];
+  els.removedRows.innerHTML =
+    removedItems
+      .map((item) => `
+        <tr>
+          <td>${formatDate(item.removedAt)}</td>
+          <td><strong>${escapeHtml(item.barcode)}</strong></td>
+          <td>${escapeHtml(item.name || item.type)}</td>
+          <td>${escapeHtml(item.removedReason || "")}</td>
+        </tr>`)
+      .join("") || `<tr><td colspan="4">Henüz çıkarılan ürün yok.</td></tr>`;
 }
 
 function nextLabelItem() {

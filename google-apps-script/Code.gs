@@ -24,7 +24,7 @@ function include(filename) {
 
 function setupInventoryWorkbook() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const items = getOrCreateSheet_(ss, SHEETS.items, [
+  const itemHeaders = [
     "Barcode",
     "Type",
     "Name",
@@ -34,7 +34,9 @@ function setupInventoryWorkbook() {
     "RemovedReason",
     "CreatedAt",
     "UpdatedAt",
-  ]);
+    "RemovedAt",
+  ];
+  const items = getOrCreateSheet_(ss, SHEETS.items, itemHeaders);
   const movements = getOrCreateSheet_(ss, SHEETS.movements, [
     "Time",
     "Barcode",
@@ -45,6 +47,7 @@ function setupInventoryWorkbook() {
   ]);
   const settings = getOrCreateSheet_(ss, SHEETS.settings, ["Type", "Prefix", "NextNumber"]);
 
+  ensureSheetColumns_(items, itemHeaders);
   formatSheet_(items);
   formatSheet_(movements);
   formatSheet_(settings);
@@ -61,6 +64,7 @@ function getState() {
   setupInventoryWorkbook();
   return {
     items: readItems_(),
+    removedItems: readRemovedItems_(),
     movements: readMovements_().slice(0, 80),
     nextNumbers: readSettings_(),
   };
@@ -110,7 +114,7 @@ function addItem(payload) {
   const name = customName || `${type} ${nextNumber}`;
   const now = new Date();
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  ss.getSheetByName(SHEETS.items).appendRow([barcode, type, name, "IN", "", true, "", now, now]);
+  ss.getSheetByName(SHEETS.items).appendRow([barcode, type, name, "IN", "", true, "", now, now, ""]);
   setNextNumber_(typeSetting.prefix, nextNumber + 1);
   appendMovement_(barcode, name, "ADD", "Hazırlık Programı", "Envantere eklendi");
   return getState();
@@ -134,8 +138,10 @@ function removeItem(payload) {
   }
 
   const row = rows[rowIndex];
-  itemsSheet.getRange(rowIndex + 1, 4, 1, 5).setValues([["REMOVED", "", false, reason, row[7]]]);
-  itemsSheet.getRange(rowIndex + 1, 9).setValue(new Date());
+  const removedAt = new Date();
+  itemsSheet.getRange(rowIndex + 1, 4, 1, 4).setValues([["REMOVED", "", false, reason]]);
+  itemsSheet.getRange(rowIndex + 1, 9).setValue(removedAt);
+  itemsSheet.getRange(rowIndex + 1, 10).setValue(removedAt);
   appendMovement_(row[0], row[2], "REMOVE", "Hazırlık Programı", reason);
   return getState();
 }
@@ -162,6 +168,24 @@ function readItems_() {
       status: row[3],
       holder: row[4],
       updatedAt: row[8] || row[7],
+    }));
+}
+
+function readRemovedItems_() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEETS.items);
+  return sheet
+    .getDataRange()
+    .getValues()
+    .slice(1)
+    .filter((row) => row[5] !== true && (row[3] === "REMOVED" || row[6]))
+    .reverse()
+    .map((row) => ({
+      barcode: row[0],
+      type: row[1],
+      name: row[2],
+      status: row[3],
+      removedReason: row[6],
+      removedAt: row[9] || row[8] || row[7],
     }));
 }
 
@@ -247,6 +271,16 @@ function getOrCreateSheet_(ss, name, headers) {
   if (sheet.getLastRow() === 0) sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
   sheet.setFrozenRows(1);
   return sheet;
+}
+
+function ensureSheetColumns_(sheet, headers) {
+  const currentHeaders = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), 1)).getValues()[0];
+  headers.forEach((header) => {
+    if (!currentHeaders.includes(header)) {
+      sheet.getRange(1, sheet.getLastColumn() + 1).setValue(header);
+      currentHeaders.push(header);
+    }
+  });
 }
 
 function formatSheet_(sheet) {

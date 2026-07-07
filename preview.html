@@ -72,6 +72,8 @@
       .status-pill { min-width: 126px; border-radius: 999px; padding: 7px 12px; background: #e8f1ed; color: var(--green); text-align: center; font-weight: 560; }
       .scan-grid, .manage-grid { display: grid; grid-template-columns: minmax(320px, 1.15fr) minmax(280px, 0.85fr); gap: 16px; padding: 18px; }
       .scan-primary, .scan-side, .manage-card { display: grid; align-content: start; gap: 10px; border: 1px solid var(--line); border-radius: 8px; padding: 16px; background: #fbfcfc; }
+      .removed-log { display: grid; gap: 12px; margin: 0 18px 18px; border: 1px solid var(--line); border-radius: 8px; padding: 16px; background: #fbfcfc; }
+      .removed-log h4 { margin: 0; font-size: 18px; font-weight: 560; }
       .summary-wrap { padding: 18px; overflow: auto; }
       .summary-table { max-width: 760px; min-width: 560px; border-collapse: separate; border-spacing: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
       .summary-table th, .summary-table td { border-bottom: 1px solid var(--line); text-align: right; }
@@ -95,6 +97,7 @@
       .secondary { border: 1px solid var(--line); background: #fff; color: var(--ink); }
       .danger { border: 0; background: var(--red); color: #fff; }
       .table-wrap, .label-sheet { max-height: calc(100vh - 270px); overflow: auto; }
+      .table-wrap.compact { max-height: 260px; }
       table { width: 100%; min-width: 760px; border-collapse: collapse; }
       th, td { padding: 12px 14px; border-bottom: 1px solid var(--line); text-align: left; }
       th { position: sticky; top: 0; background: #eef3f1; color: #3d4a45; font-size: 12px; font-weight: 560; text-transform: uppercase; }
@@ -104,6 +107,7 @@
       .badge { display: inline-flex; min-width: 84px; min-height: 28px; align-items: center; justify-content: center; border-radius: 999px; padding: 4px 10px; font-size: 12px; font-weight: 560; }
       .badge.in { background: #dff3e8; color: var(--green); }
       .badge.out { background: #fff1d6; color: var(--amber); }
+      .badge.removed { background: #ffe0df; color: var(--red); }
       .label-sheet { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; padding: 18px; }
       .barcode-label { display: grid; gap: 8px; min-height: 138px; border: 1px solid var(--line); border-radius: 8px; padding: 12px; background: #fff; break-inside: avoid; }
       .barcode-label div { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
@@ -182,6 +186,7 @@
             <form class="manage-card" id="removeItemForm"><h3>Envanterden çıkar</h3><label>Ürün</label><select id="removeBarcode"></select><label>Gerekçe</label><input id="removeReason" placeholder="Arızalı, kayıp, kullanım dışı" /><button class="danger" type="submit">Envanterden çıkar</button></form>
           </div>
           <div class="message" id="manageMessage"></div>
+          <div class="removed-log"><h4>Çıkarılan ürünler</h4><div class="table-wrap compact"><table><thead><tr><th>Tarih</th><th>Barkod</th><th>Ürün</th><th>Gerekçe</th></tr></thead><tbody id="removedRows"></tbody></table></div></div>
         </section>
 
         <section class="panel" data-panel="labels">
@@ -348,12 +353,12 @@
         "Zeynep Çiğdem Eren",
         "Zülal Güneş",
       ];
-      const state = { items: seedItems(), movements: [], nextNumbers: { FD: 149, SR: 103, KM: 3 } };
+      const state = { items: seedItems(), removedItems: [], movements: [], nextNumbers: { FD: 149, SR: 103, KM: 3 } };
       const $ = (id) => document.getElementById(id);
       const els = {
         metrics: $("metrics"), summaryRows: $("summaryRows"), navItems: document.querySelectorAll(".nav-item"), panels: document.querySelectorAll(".panel"),
         barcodeInput: $("barcodeInput"), personInput: $("personInput"), personOptions: $("personOptions"), noteInput: $("noteInput"), scanForm: $("scanForm"), clearButton: $("clearButton"), itemPreview: $("itemPreview"), message: $("message"), scanMode: $("scanMode"),
-        inventoryRows: $("inventoryRows"), logRows: $("logRows"), inventorySearch: $("inventorySearch"), inventoryFilters: document.querySelectorAll("[data-inventory-filter]"), inventoryTypeFilter: document.querySelector('[data-inventory-filter="type"]'), inventoryNameFilter: document.querySelector('[data-inventory-filter="name"]'), addItemForm: $("addItemForm"), addType: $("addType"), addBarcode: $("addBarcode"), addName: $("addName"), removeItemForm: $("removeItemForm"), removeBarcode: $("removeBarcode"), removeReason: $("removeReason"), manageMessage: $("manageMessage"),
+        inventoryRows: $("inventoryRows"), logRows: $("logRows"), removedRows: $("removedRows"), inventorySearch: $("inventorySearch"), inventoryFilters: document.querySelectorAll("[data-inventory-filter]"), inventoryTypeFilter: document.querySelector('[data-inventory-filter="type"]'), inventoryNameFilter: document.querySelector('[data-inventory-filter="name"]'), addItemForm: $("addItemForm"), addType: $("addType"), addBarcode: $("addBarcode"), addName: $("addName"), removeItemForm: $("removeItemForm"), removeBarcode: $("removeBarcode"), removeReason: $("removeReason"), manageMessage: $("manageMessage"),
         labelFilter: $("labelFilter"), nextLabelType: $("nextLabelType"), labelMode: $("labelMode"), labelSheet: $("labelSheet")
       };
 
@@ -438,12 +443,19 @@
       function removeItem(event) {
         event.preventDefault();
         if (!els.removeReason.value.trim()) return show(els.manageMessage, "error", "Gerekçe girin.");
-        state.items = state.items.filter((item) => item.barcode !== els.removeBarcode.value);
-        show(els.manageMessage, "success", "Ürün listeden çıkarıldı.");
+        const item = state.items.find((entry) => entry.barcode === els.removeBarcode.value);
+        const removedAt = new Date();
+        state.items = state.items.filter((entry) => entry.barcode !== els.removeBarcode.value);
+        if (item) {
+          state.removedItems.unshift({ ...item, status: "REMOVED", removedAt, removedReason: els.removeReason.value.trim() });
+          state.movements.unshift({ time: removedAt, barcode: item.barcode, itemName: item.name, action: "REMOVE", person: "Hazırlık Programı", note: els.removeReason.value.trim() });
+        }
+        els.removeReason.value = "";
+        show(els.manageMessage, "success", "Ürün tarih ve gerekçesiyle envanterden çıkarıldı.");
         render();
       }
 
-      function render() { renderMetrics(); renderSummary(); renderInventoryFilterOptions(); renderInventory(); renderLogs(); renderRemoveOptions(); renderLabels(); updateNextBarcode(); updatePreview(); }
+      function render() { renderMetrics(); renderSummary(); renderInventoryFilterOptions(); renderInventory(); renderRemovedItems(); renderLogs(); renderRemoveOptions(); renderLabels(); updateNextBarcode(); updatePreview(); }
       function renderSummary() {
         els.summaryRows.innerHTML = summaryTypes.map(({ label, type }) => {
           const items = state.items.filter((item) => item.type === type);
@@ -517,7 +529,10 @@
         return (!query || haystack.includes(query)) && Object.entries(filters).every(([key, value]) => !value || normalize(values[key]).includes(value));
       }
       function renderLogs() {
-        els.logRows.innerHTML = state.movements.map((log) => `<tr><td>${log.time.toLocaleString("tr-TR")}</td><td><strong>${log.barcode}</strong></td><td>${log.itemName}</td><td>${badge(log.action)}</td><td>${log.person}</td><td>${log.note || ""}</td></tr>`).join("") || `<tr><td colspan="6">Henuz hareket yok.</td></tr>`;
+        els.logRows.innerHTML = state.movements.map((log) => `<tr><td>${log.time.toLocaleString("tr-TR")}</td><td><strong>${log.barcode}</strong></td><td>${log.itemName}</td><td>${badge(log.action)}</td><td>${log.person}</td><td>${log.note || ""}</td></tr>`).join("") || `<tr><td colspan="6">Henüz hareket yok.</td></tr>`;
+      }
+      function renderRemovedItems() {
+        els.removedRows.innerHTML = state.removedItems.map((item) => `<tr><td>${formatDate(item.removedAt)}</td><td><strong>${item.barcode}</strong></td><td>${item.name}</td><td>${item.removedReason || ""}</td></tr>`).join("") || `<tr><td colspan="4">Henüz çıkarılan ürün yok.</td></tr>`;
       }
       function renderRemoveOptions() { els.removeBarcode.innerHTML = state.items.map((item) => `<option value="${item.barcode}">${item.barcode} - ${item.name}</option>`).join(""); }
       function renderLabels() {
@@ -549,10 +564,11 @@
         els.itemPreview.textContent = !barcode ? "Ürün bekleniyor" : item ? `${item.barcode} | ${item.type} | ${item.name}` : "Bu barkod bulunamadı";
       }
       function badge(status) {
-        return `<span class="badge ${status === "OUT" ? "out" : "in"}">${statusText(status)}</span>`;
+        const cls = status === "OUT" ? "out" : status === "REMOVE" || status === "REMOVED" ? "removed" : "in";
+        return `<span class="badge ${cls}">${statusText(status)}</span>`;
       }
       function statusText(status) {
-        const labels = { IN: "Stokta", OUT: "Dışarıda", ADD: "Eklendi" };
+        const labels = { IN: "Stokta", OUT: "Dışarıda", ADD: "Eklendi", REMOVE: "Çıkarıldı", REMOVED: "Çıkarıldı" };
         return labels[status] || status;
       }
       function formatDate(value) {

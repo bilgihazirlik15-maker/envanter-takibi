@@ -277,6 +277,18 @@ input:focus, select:focus {
 
 .manage-card h4 { margin: 0 0 4px; font-size: 18px; font-weight: 560; }
 
+.removed-log {
+  display: grid;
+  gap: 12px;
+  margin: 0 18px 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px;
+  background: #fbfcfc;
+}
+
+.removed-log h4 { margin: 0; font-size: 18px; font-weight: 560; }
+
 .summary-wrap {
   padding: 18px;
   overflow: auto;
@@ -364,6 +376,7 @@ input:focus, select:focus {
 .message { margin: 0 18px 18px; }
 .table-search { max-width: 320px; }
 .table-wrap { max-height: calc(100vh - 270px); overflow: auto; }
+.table-wrap.compact { max-height: 260px; }
 
 table { width: 100%; min-width: 760px; border-collapse: collapse; }
 th, td { padding: 12px 14px; border-bottom: 1px solid var(--line); text-align: left; }
