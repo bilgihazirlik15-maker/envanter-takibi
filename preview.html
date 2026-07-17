@@ -118,6 +118,29 @@
       .barcode-label strong { font-size: 18px; font-weight: 560; }
       .barcode-label span, .barcode-label p { margin: 0; color: var(--muted); font-size: 12px; }
       .bars { height: 52px; background: repeating-linear-gradient(90deg, #111 0 2px, #fff 2px 4px, #111 4px 5px, #fff 5px 9px); }
+      .barcode-label.recorder-standard {
+        width: 50%;
+        height: 69px;
+        min-height: 69px;
+        padding: 0;
+        place-items: center;
+        justify-self: start;
+      }
+      .barcode-label.recorder-standard div:first-child {
+        align-items: center;
+        justify-content: center;
+      }
+      .barcode-label.recorder-standard strong {
+        font-size: 18px;
+        font-weight: 700;
+        line-height: 1;
+        text-align: center;
+      }
+      .barcode-label.recorder-standard span,
+      .barcode-label.recorder-standard .bars,
+      .barcode-label.recorder-standard p {
+        display: none;
+      }
       .label-sheet.mini { grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); }
       .label-sheet.mini .barcode-label { min-height: 35px; gap: 2px; padding: 3px 4px; border-radius: 4px; }
       .label-sheet.mini .barcode-label strong { font-size: 9px; }
@@ -547,7 +570,7 @@
         const items = nextOnly ? [nextLabelItem()] : state.items.filter((item) => els.labelFilter.value === "all" || item.type === els.labelFilter.value).slice().sort(compareBarcode);
         const mini = els.labelMode.value === "mini";
         els.labelSheet.classList.toggle("mini", mini);
-        els.labelSheet.innerHTML = items.map((item) => `<article class="barcode-label"><div><strong>${item.barcode}</strong><span>${mini ? "BILGI HZP" : item.type}</span></div><div class="bars"></div><p>${mini ? item.barcode : item.name}</p></article>`).join("");
+        els.labelSheet.innerHTML = items.map((item) => {\n          const recorderClass = !mini && item.type === "Ses Kayıt Cihazı" ? " recorder-standard" : "";\n          return `<article class="barcode-label${recorderClass}"><div><strong>${item.barcode}</strong><span>${mini ? "BILGI HZP" : item.type}</span></div><div class="bars"></div><p>${mini ? item.barcode : item.name}</p></article>`;\n        }).join("");
       }
       function nextLabelItem() {
         const type = els.nextLabelType.value;
