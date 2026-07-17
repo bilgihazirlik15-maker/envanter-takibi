@@ -122,10 +122,12 @@
         width: 50%;
         height: 69px;
         min-height: 69px;
-        padding: 0;
+        grid-template-rows: 18px 36px;
+        align-content: center;
+        gap: 4px;
+        padding: 4px;
         border: 1px solid #000;
         border-radius: 0;
-        place-items: center;
         justify-self: start;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
@@ -141,9 +143,13 @@
         text-align: center;
       }
       .barcode-label.recorder-standard span,
-      .barcode-label.recorder-standard .bars,
       .barcode-label.recorder-standard p {
         display: none;
+      }
+      .barcode-label.recorder-standard .bars {
+        display: block;
+        width: 100%;
+        height: 36px;
       }
       .label-sheet.mini { grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); }
       .label-sheet.mini .barcode-label { min-height: 35px; gap: 2px; padding: 3px 4px; border-radius: 4px; }
