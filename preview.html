@@ -570,7 +570,10 @@
         const items = nextOnly ? [nextLabelItem()] : state.items.filter((item) => els.labelFilter.value === "all" || item.type === els.labelFilter.value).slice().sort(compareBarcode);
         const mini = els.labelMode.value === "mini";
         els.labelSheet.classList.toggle("mini", mini);
-        els.labelSheet.innerHTML = items.map((item) => {\n          const recorderClass = !mini && item.type === "Ses Kayıt Cihazı" ? " recorder-standard" : "";\n          return `<article class="barcode-label${recorderClass}"><div><strong>${item.barcode}</strong><span>${mini ? "BILGI HZP" : item.type}</span></div><div class="bars"></div><p>${mini ? item.barcode : item.name}</p></article>`;\n        }).join("");
+        els.labelSheet.innerHTML = items.map((item) => {
+          const recorderClass = !mini && item.type === "Ses Kayıt Cihazı" ? " recorder-standard" : "";
+          return `<article class="barcode-label${recorderClass}"><div><strong>${item.barcode}</strong><span>${mini ? "BILGI HZP" : item.type}</span></div><div class="bars"></div><p>${mini ? item.barcode : item.name}</p></article>`;
+        }).join("");
       }
       function nextLabelItem() {
         const type = els.nextLabelType.value;
