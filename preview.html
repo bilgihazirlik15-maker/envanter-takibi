@@ -213,7 +213,7 @@
         </section>
 
         <section class="panel" data-panel="inventory">
-          <div class="panel-header"><div><h3>Envanter</h3><p>148 flash disk, 102 ses kayıt cihazı ve 2 kamera.</p></div><input id="inventorySearch" type="search" placeholder="Ürün ara" /></div>
+          <div class="panel-header"><div><h3>Envanter</h3><p>Okutulan ve eklenen gerçek ürünler.</p></div><input id="inventorySearch" type="search" placeholder="Ürün ara" /></div>
           <div class="table-wrap"><table><thead><tr><th>Barkod</th><th>Tür</th><th>Ürün</th><th>Durum</th><th>Kimde</th><th>Son işlem tarihi</th></tr><tr class="filter-row"><th><input data-inventory-filter="barcode" type="search" placeholder="Barkod" /></th><th><select data-inventory-filter="type"><option value="">Tümü</option></select></th><th><select data-inventory-filter="name"><option value="">Tümü</option></select></th><th><select data-inventory-filter="status"><option value="">Tümü</option><option value="Stokta">Stokta</option><option value="Dışarıda">Dışarıda</option></select></th><th><input data-inventory-filter="holder" type="search" list="personOptions" placeholder="Kimde" /></th><th><input data-inventory-filter="updatedAt" type="search" placeholder="Tarih / saat" /></th></tr></thead><tbody id="inventoryRows"></tbody></table></div>
         </section>
 
@@ -391,7 +391,8 @@
         "Zeynep Çiğdem Eren",
         "Zülal Güneş",
       ];
-      const state = { items: seedItems(), removedItems: [], movements: [], nextNumbers: { FD: 149, SR: 103, KM: 3 } };
+      const STORAGE_KEY = "bilgi-envanter-v2";
+      const state = loadState();
       const $ = (id) => document.getElementById(id);
       const els = {
         metrics: $("metrics"), summaryRows: $("summaryRows"), navItems: document.querySelectorAll(".nav-item"), panels: document.querySelectorAll(".panel"),
@@ -404,19 +405,24 @@
       bind();
       render();
 
-      function seedItems() {
-        return [
-          ...makeItems("FD", "Flash Disk", 148),
-          ...makeItems("SR", "Ses Kayıt Cihazı", 102),
-          ...makeItems("KM", "Kamera", 2)
-        ];
+      function loadState() {
+        const empty = { items: [], removedItems: [], movements: [], nextNumbers: { FD: 1, SR: 1, KM: 1 } };
+        try {
+          const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+          if (!saved || !Array.isArray(saved.items)) return empty;
+          return {
+            items: saved.items.map((item) => ({ ...item, updatedAt: item.updatedAt ? new Date(item.updatedAt) : null })),
+            removedItems: (saved.removedItems || []).map((item) => ({ ...item, removedAt: item.removedAt ? new Date(item.removedAt) : null })),
+            movements: (saved.movements || []).map((log) => ({ ...log, time: new Date(log.time) })),
+            nextNumbers: { ...empty.nextNumbers, ...(saved.nextNumbers || {}) }
+          };
+        } catch {
+          return empty;
+        }
       }
 
-      function makeItems(prefix, type, count) {
-        return Array.from({ length: count }, (_, index) => {
-          const number = index + 1;
-          return { barcode: prefix + String(number).padStart(3, "0"), type, name: `${type} ${number}`, status: "IN", holder: "", updatedAt: new Date() };
-        });
+      function saveState() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       }
 
       function bind() {
@@ -454,12 +460,15 @@
         if (!item) {
           const parts = barcodeParts(scannedBarcode);
           const typeEntry = Object.entries(typeSettings).find(([, setting]) => setting.prefix === parts.prefix);
-          if (!typeEntry || parts.number !== state.nextNumbers[parts.prefix]) return show(els.message, "error", "Barkod bulunamadı.");
+          const hasSameType = state.items.some((entry) => entry.barcode.startsWith(parts.prefix));
+          const canRegister = typeEntry && parts.number > 0 && (!hasSameType || parts.number === state.nextNumbers[parts.prefix]);
+          if (!canRegister) return show(els.message, "error", "Barkod bulunamadı.");
           const [type] = typeEntry;
           item = { barcode: scannedBarcode, type, name: `${type} ${parts.number}`, status: "IN", holder: "", updatedAt: new Date() };
           state.items.push(item);
-          state.nextNumbers[parts.prefix] += 1;
+          state.nextNumbers[parts.prefix] = parts.number + 1;
           state.movements.unshift({ time: new Date(), barcode: item.barcode, itemName: item.name, action: "ADD", person: "Hazırlık Programı", note: "İlk taramada envantere eklendi" });
+          saveState();
           els.barcodeInput.value = "";
           els.noteInput.value = "";
           show(els.message, "success", `${item.barcode} envantere giriş yaptı.`);
@@ -472,6 +481,7 @@
         item.holder = action === "OUT" ? els.personInput.value.trim() : "";
         item.updatedAt = new Date();
         state.movements.unshift({ time: new Date(), barcode: item.barcode, itemName: item.name, action, person: els.personInput.value || "Hazırlık Programı", note: els.noteInput.value });
+        saveState();
         els.barcodeInput.value = "";
         els.noteInput.value = "";
         show(els.message, "success", "İşlem demo kaydına eklendi.");
@@ -488,6 +498,7 @@
         state.items.push({ barcode, type, name, status: "IN", holder: "", updatedAt: new Date() });
         state.nextNumbers[setting.prefix] += 1;
         state.movements.unshift({ time: new Date(), barcode, itemName: name, action: "ADD", person: "Hazırlık Programı", note: "Envantere eklendi" });
+        saveState();
         els.addName.value = "";
         show(els.manageMessage, "success", `${barcode} eklendi.`);
         render();
@@ -503,6 +514,7 @@
           state.removedItems.unshift({ ...item, status: "REMOVED", removedAt, removedReason: els.removeReason.value.trim() });
           state.movements.unshift({ time: removedAt, barcode: item.barcode, itemName: item.name, action: "REMOVE", person: "Hazırlık Programı", note: els.removeReason.value.trim() });
         }
+        saveState();
         els.removeReason.value = "";
         show(els.manageMessage, "success", "Ürün tarih ve gerekçesiyle envanterden çıkarıldı.");
         render();
@@ -650,9 +662,13 @@
       function updatePreview() {
         const barcode = normalize(els.barcodeInput.value);
         const item = state.items.find((entry) => entry.barcode === barcode);
-        els.scanMode.textContent = !barcode ? "Hazır" : item ? (item.status === "OUT" ? "Giriş yapılacak" : "Çıkış yapılacak") : "Bulunamadı";
-        els.itemPreview.className = `item-preview ${barcode ? (item ? "ready" : "error") : ""}`;
-        els.itemPreview.textContent = !barcode ? "Ürün bekleniyor" : item ? `${item.barcode} | ${item.type} | ${item.name}` : "Bu barkod bulunamadı";
+        const parts = barcodeParts(barcode);
+        const typeEntry = Object.entries(typeSettings).find(([, setting]) => setting.prefix === parts.prefix);
+        const hasSameType = state.items.some((entry) => entry.barcode.startsWith(parts.prefix));
+        const canRegister = typeEntry && parts.number > 0 && (!hasSameType || parts.number === state.nextNumbers[parts.prefix]);
+        els.scanMode.textContent = !barcode ? "Hazır" : item ? (item.status === "OUT" ? "Giriş yapılacak" : "Çıkış yapılacak") : canRegister ? "İlk giriş yapılacak" : "Bulunamadı";
+        els.itemPreview.className = `item-preview ${barcode ? (item || canRegister ? "ready" : "error") : ""}`;
+        els.itemPreview.textContent = !barcode ? "Ürün bekleniyor" : item ? `${item.barcode} | ${item.type} | ${item.name}` : canRegister ? `${barcode} ilk okutmayla envantere eklenecek` : "Bu barkod bulunamadı";
       }
       function badge(status) {
         const cls = status === "OUT" ? "out" : status === "REMOVE" || status === "REMOVED" ? "removed" : "in";
