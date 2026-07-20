@@ -605,7 +605,7 @@
         const nextOnly = filter === "next";
         els.nextLabelType.hidden = !nextOnly;
         if (els.labelMode.value === "mini" && !nextOnly && filter !== "Flash Disk") els.labelFilter.value = "Flash Disk";
-        const items = nextOnly ? nextLabelItems(20) : state.items.filter((item) => els.labelFilter.value === "all" || item.type === els.labelFilter.value).slice().sort(compareBarcode);
+        const items = nextOnly ? nextLabelItems(36) : state.items.filter((item) => els.labelFilter.value === "all" || item.type === els.labelFilter.value).slice().sort(compareBarcode);
         const mini = els.labelMode.value === "mini";
         els.labelSheet.classList.toggle("mini", mini);
         els.labelSheet.innerHTML = items.map((item) => {
@@ -640,7 +640,7 @@
         return `<svg viewBox="0 0 ${totalWidth} 40" preserveAspectRatio="none" role="img" aria-label="${escapeHtml(value)} barkodu" xmlns="http://www.w3.org/2000/svg"><rect width="${totalWidth}" height="40" fill="#fff"/><g fill="#000">${bars.join("")}</g></svg>`;
       }
 
-      function nextLabelItems(count = 20) {
+      function nextLabelItems(count = 36) {
         const type = els.nextLabelType.value;
         const setting = typeSettings[type];
         const firstNumber = state.nextNumbers[setting.prefix];
