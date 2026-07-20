@@ -32,7 +32,7 @@
         font-family: "Segoe UI Variable Text", "Segoe UI", Aptos, system-ui, sans-serif;
       }
 
-      button, input, select { font: inherit; }
+      button, input, select, textarea { font: inherit; }
       button { cursor: pointer; }
       .app { display: grid; grid-template-columns: 286px minmax(0, 1fr); min-height: 100vh; }
       .sidebar { display: flex; flex-direction: column; gap: 28px; padding: 28px 20px; background: var(--sidebar); color: #ffffff; }
@@ -89,8 +89,15 @@
       .summary-table .summary-out { color: var(--amber); font-weight: 650; }
       .summary-table .summary-total { color: var(--ink); font-weight: 650; }
       label { color: var(--muted); font-size: 13px; font-weight: 520; }
-      input, select { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 12px; background: #fff; color: var(--ink); outline: none; }
-      input:focus, select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(11, 167, 221, 0.18); }
+      input, select, textarea { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 12px; background: #fff; color: var(--ink); outline: none; }
+      input:focus, select:focus, textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(11, 167, 221, 0.18); }
+      .bulk-checkout { margin: 18px; padding-top: 18px; border-top: 1px solid var(--line); }
+      .bulk-checkout h3 { margin-bottom: 4px; }
+      .bulk-checkout > p { margin-bottom: 14px; color: var(--muted); }
+      .bulk-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(240px, 1fr); gap: 14px; align-items: start; }
+      .bulk-grid > div { display: grid; gap: 8px; }
+      .bulk-grid textarea { min-height: 172px; resize: vertical; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 16px; text-transform: uppercase; }
+      .bulk-actions { display: flex; gap: 10px; margin-top: 12px; }
       .barcode-input { min-height: 70px; font-size: 30px; font-weight: 500; }
       .item-preview, .message { min-height: 46px; border-radius: 8px; padding: 12px; background: #f4efe6; color: var(--muted); font-weight: 500; }
       .ready, .message.success { background: #eef8c7; color: #4f6900; }
@@ -162,6 +169,7 @@
       @media (max-width: 900px) {
         .app, .metrics, .scan-grid, .manage-grid { grid-template-columns: 1fr; }
         .panel-header, .actions, .print-controls { flex-direction: column; align-items: stretch; }
+        .bulk-grid { grid-template-columns: 1fr; }
       }
 
       @media print {
@@ -210,6 +218,27 @@
             <div class="scan-side"><label for="personInput">Teslim alan / iade eden</label><input id="personInput" type="text" list="personOptions" placeholder="Listeden seçin veya yazın" /><datalist id="personOptions"></datalist><label for="noteInput">Not</label><input id="noteInput" type="text" placeholder="İsteğe bağlı" /><div class="actions"><button class="primary" type="submit">Kaydet</button><button class="secondary" type="button" id="clearButton">Temizle</button></div></div>
           </form>
           <div class="message" id="message"></div>
+          <form class="bulk-checkout" id="bulkCheckoutForm">
+            <h3>Toplu çıkış</h3>
+            <p>Teslim alanı bir kez seçin; barkodları art arda okutun veya alt alta yapıştırın.</p>
+            <div class="bulk-grid">
+              <div>
+                <label for="bulkBarcodeInput">Barkodlar</label>
+                <textarea id="bulkBarcodeInput" placeholder="FD001&#10;FD002&#10;SR103"></textarea>
+              </div>
+              <div>
+                <label for="bulkPersonInput">Teslim alan</label>
+                <input id="bulkPersonInput" type="text" list="personOptions" placeholder="Listeden seçin veya yazın" />
+                <label for="bulkNoteInput">Ortak not</label>
+                <input id="bulkNoteInput" type="text" placeholder="İsteğe bağlı" />
+                <div class="bulk-actions">
+                  <button class="primary" type="submit">Tümüne çıkış yap</button>
+                  <button class="secondary" type="button" id="bulkClearButton">Listeyi temizle</button>
+                </div>
+              </div>
+            </div>
+            <div class="message" id="bulkMessage"></div>
+          </form>
         </section>
 
         <section class="panel" data-panel="inventory">
@@ -397,6 +426,7 @@
       const els = {
         metrics: $("metrics"), summaryRows: $("summaryRows"), navItems: document.querySelectorAll(".nav-item"), panels: document.querySelectorAll(".panel"),
         barcodeInput: $("barcodeInput"), personInput: $("personInput"), personOptions: $("personOptions"), noteInput: $("noteInput"), scanForm: $("scanForm"), clearButton: $("clearButton"), itemPreview: $("itemPreview"), message: $("message"), scanMode: $("scanMode"),
+        bulkCheckoutForm: $("bulkCheckoutForm"), bulkBarcodeInput: $("bulkBarcodeInput"), bulkPersonInput: $("bulkPersonInput"), bulkNoteInput: $("bulkNoteInput"), bulkClearButton: $("bulkClearButton"), bulkMessage: $("bulkMessage"),
         inventoryRows: $("inventoryRows"), logRows: $("logRows"), removedRows: $("removedRows"), inventorySearch: $("inventorySearch"), inventoryFilters: document.querySelectorAll("[data-inventory-filter]"), inventoryTypeFilter: document.querySelector('[data-inventory-filter="type"]'), inventoryNameFilter: document.querySelector('[data-inventory-filter="name"]'), addItemForm: $("addItemForm"), addType: $("addType"), addBarcode: $("addBarcode"), addName: $("addName"), removeItemForm: $("removeItemForm"), removeBarcode: $("removeBarcode"), removeReason: $("removeReason"), manageMessage: $("manageMessage"),
         labelFilter: $("labelFilter"), nextLabelType: $("nextLabelType"), labelMode: $("labelMode"), labelSheet: $("labelSheet")
       };
@@ -428,6 +458,8 @@
       function bind() {
         els.navItems.forEach((button) => button.addEventListener("click", () => switchView(button.dataset.view)));
         els.scanForm.addEventListener("submit", scan);
+        els.bulkCheckoutForm.addEventListener("submit", bulkCheckout);
+        els.bulkClearButton.addEventListener("click", () => { els.bulkBarcodeInput.value = ""; els.bulkNoteInput.value = ""; show(els.bulkMessage, "", ""); els.bulkBarcodeInput.focus(); });
         els.clearButton.addEventListener("click", () => { els.barcodeInput.value = ""; els.personInput.value = ""; els.noteInput.value = ""; updatePreview(); });
         els.barcodeInput.addEventListener("input", updatePreview);
         els.inventorySearch.addEventListener("input", renderInventory);
@@ -486,6 +518,50 @@
         els.noteInput.value = "";
         show(els.message, "success", "İşlem demo kaydına eklendi.");
         render();
+      }
+
+      function bulkCheckout(event) {
+        event.preventDefault();
+        const person = els.bulkPersonInput.value.trim();
+        if (!person) return show(els.bulkMessage, "error", "Teslim alanı girin.");
+        const barcodes = [...new Set(els.bulkBarcodeInput.value.split(/[\s,;]+/).map(normalize).filter(Boolean))];
+        if (!barcodes.length) return show(els.bulkMessage, "error", "En az bir barkod okutun.");
+
+        const completed = [];
+        const missing = [];
+        const alreadyOut = [];
+        const time = new Date();
+
+        barcodes.forEach((barcode) => {
+          const item = state.items.find((entry) => entry.barcode === barcode);
+          if (!item) {
+            missing.push(barcode);
+            return;
+          }
+          if (item.status === "OUT") {
+            alreadyOut.push(barcode);
+            return;
+          }
+          item.status = "OUT";
+          item.holder = person;
+          item.updatedAt = time;
+          state.movements.unshift({ time, barcode: item.barcode, itemName: item.name, action: "OUT", person, note: els.bulkNoteInput.value.trim() });
+          completed.push(barcode);
+        });
+
+        if (completed.length) saveState();
+        const details = [
+          `${completed.length} ürün ${person} adına çıkış yapıldı.`,
+          missing.length ? `Bulunamadı: ${missing.join(", ")}.` : "",
+          alreadyOut.length ? `Zaten dışarıda: ${alreadyOut.join(", ")}.` : ""
+        ].filter(Boolean).join(" ");
+        show(els.bulkMessage, completed.length ? "success" : "error", details);
+        if (completed.length) {
+          els.bulkBarcodeInput.value = "";
+          els.bulkNoteInput.value = "";
+        }
+        render();
+        els.bulkBarcodeInput.focus();
       }
 
       function addItem(event) {
