@@ -605,7 +605,7 @@
         const nextOnly = filter === "next";
         els.nextLabelType.hidden = !nextOnly;
         if (els.labelMode.value === "mini" && !nextOnly && filter !== "Flash Disk") els.labelFilter.value = "Flash Disk";
-        const items = nextOnly ? [nextLabelItem()] : state.items.filter((item) => els.labelFilter.value === "all" || item.type === els.labelFilter.value).slice().sort(compareBarcode);
+        const items = nextOnly ? nextLabelItems(20) : state.items.filter((item) => els.labelFilter.value === "all" || item.type === els.labelFilter.value).slice().sort(compareBarcode);
         const mini = els.labelMode.value === "mini";
         els.labelSheet.classList.toggle("mini", mini);
         els.labelSheet.innerHTML = items.map((item) => {
@@ -640,11 +640,14 @@
         return `<svg viewBox="0 0 ${totalWidth} 40" preserveAspectRatio="none" role="img" aria-label="${escapeHtml(value)} barkodu" xmlns="http://www.w3.org/2000/svg"><rect width="${totalWidth}" height="40" fill="#fff"/><g fill="#000">${bars.join("")}</g></svg>`;
       }
 
-      function nextLabelItem() {
+      function nextLabelItems(count = 20) {
         const type = els.nextLabelType.value;
         const setting = typeSettings[type];
-        const number = state.nextNumbers[setting.prefix];
-        return { barcode: setting.prefix + String(number).padStart(3, "0"), type, name: `${type} ${number}` };
+        const firstNumber = state.nextNumbers[setting.prefix];
+        return Array.from({ length: count }, (_, index) => {
+          const number = firstNumber + index;
+          return { barcode: setting.prefix + String(number).padStart(3, "0"), type, name: `${type} ${number}` };
+        });
       }
       function compareBarcode(a, b) {
         const left = barcodeParts(a.barcode);
