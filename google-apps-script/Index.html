@@ -19,6 +19,7 @@
         </div>
         <nav class="nav" aria-label="Bölümler">
           <button class="nav-item active" data-view="scan">Giriş / Çıkış</button>
+          <button class="nav-item" data-view="check">Barkod Kontrol</button>
           <button class="nav-item" data-view="inventory">Envanter</button>
           <button class="nav-item" data-view="manage">Ürün Yönetimi</button>
           <button class="nav-item" data-view="labels">Barkod Yazdır</button>
@@ -86,6 +87,37 @@
             </div>
           </form>
           <div class="message" id="message" role="status" aria-live="polite"></div>
+        </section>
+
+        <section class="panel" data-panel="check">
+          <div class="panel-header">
+            <div>
+              <h3>Barkod kontrol</h3>
+              <p>Giriş veya çıkış kaydı oluşturmadan ürünün envanterde olup olmadığını kontrol edin.</p>
+            </div>
+            <span class="status-pill" id="checkMode">Kontrol</span>
+          </div>
+
+          <form class="check-grid" id="checkForm">
+            <div class="scan-primary">
+              <label for="checkBarcodeInput">Barkod</label>
+              <input id="checkBarcodeInput" class="barcode-input" type="text" placeholder="Kontrol edilecek barkodu okutun" autocomplete="off" />
+              <div class="check-result" id="checkResult">Barkod bekleniyor</div>
+            </div>
+            <div class="scan-side">
+              <h4>Sonuç</h4>
+              <dl class="check-details" id="checkDetails">
+                <div><dt>Barkod</dt><dd>-</dd></div>
+                <div><dt>Tür</dt><dd>-</dd></div>
+                <div><dt>Ürün</dt><dd>-</dd></div>
+                <div><dt>Durum</dt><dd>-</dd></div>
+                <div><dt>Kimde</dt><dd>-</dd></div>
+              </dl>
+              <div class="actions">
+                <button class="secondary" type="button" id="clearCheckButton">Temizle</button>
+              </div>
+            </div>
+          </form>
         </section>
 
         <section class="panel" data-panel="inventory">
