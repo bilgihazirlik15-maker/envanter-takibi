@@ -173,6 +173,12 @@ const els = {
   itemPreview: document.getElementById("itemPreview"),
   message: document.getElementById("message"),
   scanMode: document.getElementById("scanMode"),
+  checkBarcodeInput: document.getElementById("checkBarcodeInput"),
+  checkForm: document.getElementById("checkForm"),
+  clearCheckButton: document.getElementById("clearCheckButton"),
+  checkResult: document.getElementById("checkResult"),
+  checkDetails: document.getElementById("checkDetails"),
+  checkMode: document.getElementById("checkMode"),
   inventoryRows: document.getElementById("inventoryRows"),
   logRows: document.getElementById("logRows"),
   removedRows: document.getElementById("removedRows"),
@@ -219,6 +225,9 @@ function bindEvents() {
   els.scanForm.addEventListener("submit", handleScan);
   els.clearButton.addEventListener("click", clearScan);
   els.barcodeInput.addEventListener("input", updatePreview);
+  els.checkForm.addEventListener("submit", handleCheck);
+  els.clearCheckButton.addEventListener("click", clearCheck);
+  els.checkBarcodeInput.addEventListener("input", updateCheckPreview);
   els.inventorySearch.addEventListener("input", renderInventory);
   els.inventoryFilters.forEach((input) => {
     input.addEventListener("input", handleInventoryFilterChange);
@@ -243,6 +252,7 @@ function switchView(view) {
   els.navItems.forEach((button) => button.classList.toggle("active", button.dataset.view === view));
   els.panels.forEach((panel) => panel.classList.toggle("active", panel.dataset.panel === view));
   if (view === "scan") setTimeout(() => els.barcodeInput.focus(), 0);
+  if (view === "check") setTimeout(() => els.checkBarcodeInput.focus(), 0);
 }
 
 function handleScan(event) {
@@ -300,6 +310,18 @@ function clearScan() {
   els.barcodeInput.focus();
 }
 
+function handleCheck(event) {
+  event.preventDefault();
+  updateCheckPreview(true);
+  els.checkBarcodeInput.select();
+}
+
+function clearCheck() {
+  els.checkBarcodeInput.value = "";
+  updateCheckPreview();
+  els.checkBarcodeInput.focus();
+}
+
 function render() {
   renderMetrics();
   renderSummary();
@@ -311,6 +333,7 @@ function render() {
   renderLabels();
   updateNextBarcode();
   updatePreview();
+  updateCheckPreview();
 }
 
 function renderSummary() {
@@ -540,6 +563,45 @@ function updatePreview() {
   els.itemPreview.className = "item-preview ready";
   els.scanMode.textContent = actionText;
   if (item.status === "OUT" && !els.personInput.value) els.personInput.value = item.holder;
+}
+
+function updateCheckPreview(force = false) {
+  const barcode = normalize(els.checkBarcodeInput.value);
+  if (!barcode) {
+    els.checkResult.textContent = "Barkod bekleniyor";
+    els.checkResult.className = "check-result";
+    els.checkMode.textContent = "Kontrol";
+    renderCheckDetails();
+    return;
+  }
+
+  const item = state.items.find((entry) => normalize(entry.barcode) === barcode);
+  if (!item) {
+    els.checkResult.textContent = force ? "Bu barkod envanterde yok." : "Envanterde bulunamadı";
+    els.checkResult.className = "check-result error";
+    els.checkMode.textContent = "Yok";
+    renderCheckDetails({ barcode: els.checkBarcodeInput.value.trim() });
+    return;
+  }
+
+  const currentStatus = statusText(item.status);
+  els.checkResult.textContent = `${item.barcode} envanterde kayıtlı. Durum: ${currentStatus}.`;
+  els.checkResult.className = "check-result ready";
+  els.checkMode.textContent = "Var";
+  renderCheckDetails(item);
+}
+
+function renderCheckDetails(item = {}) {
+  const holderText = item.status === "OUT" ? item.holder || "Belirtilmemiş" : item.barcode ? "Hazır" : "-";
+  els.checkDetails.innerHTML = [
+    ["Barkod", item.barcode || "-"],
+    ["Tür", item.type || "-"],
+    ["Ürün", item.name || "-"],
+    ["Durum", item.status ? statusText(item.status) : "-"],
+    ["Kimde", holderText],
+  ]
+    .map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`)
+    .join("");
 }
 
 function statusBadge(status) {
