@@ -218,6 +218,13 @@ button { cursor: pointer; }
   padding: 18px;
 }
 
+.check-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) minmax(280px, 0.8fr);
+  gap: 16px;
+  padding: 18px;
+}
+
 .scan-primary, .scan-side, .manage-card {
   display: grid;
   align-content: start;
@@ -247,7 +254,7 @@ input:focus, select:focus {
 
 .barcode-input { min-height: 70px; font-size: 30px; font-weight: 500; }
 
-.item-preview, .message {
+.item-preview, .check-result, .message {
   min-height: 46px;
   border-radius: 8px;
   padding: 12px;
@@ -256,8 +263,8 @@ input:focus, select:focus {
   font-weight: 500;
 }
 
-.item-preview.ready, .message.success { background: #eef8c7; color: #4f6900; }
-.item-preview.error, .message.error { background: #ffe3df; color: var(--red); }
+.item-preview.ready, .check-result.ready, .message.success { background: #eef8c7; color: #4f6900; }
+.item-preview.error, .check-result.error, .message.error { background: #ffe3df; color: var(--red); }
 
 .actions { display: flex; gap: 10px; margin-top: 4px; }
 
@@ -280,6 +287,37 @@ input:focus, select:focus {
 }
 
 .manage-card h4 { margin: 0 0 4px; font-size: 18px; font-weight: 560; }
+
+.scan-side h4 {
+  margin: 0 0 4px;
+  font-size: 18px;
+  font-weight: 560;
+}
+
+.check-details {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.check-details div {
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr);
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.check-details dt {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.check-details dd {
+  margin: 0;
+  min-width: 0;
+  font-weight: 520;
+}
 
 .removed-log {
   display: grid;
@@ -434,7 +472,7 @@ th {
 @media (max-width: 900px) {
   .app { grid-template-columns: 1fr; }
   .sidebar { min-height: auto; }
-  .nav, .metrics, .scan-grid, .manage-grid { grid-template-columns: 1fr; }
+  .nav, .metrics, .scan-grid, .check-grid, .manage-grid { grid-template-columns: 1fr; }
   .panel-header, .actions, .print-controls { flex-direction: column; align-items: stretch; }
 }
 
